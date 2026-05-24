@@ -9,6 +9,7 @@ export const useAuth = () => useContext(AuthContext)
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
+  const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
 
   async function fetchProfile(userRecord) {
@@ -50,6 +51,7 @@ export const AuthProvider = ({ children }) => {
         const { data: { session } } = await supabase.auth.getSession()
 
         if (session?.user) {
+          setSession(session)
           setUser(session.user)
           void fetchProfile(session.user)
         }
@@ -64,9 +66,11 @@ export const AuthProvider = ({ children }) => {
 
     const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
+        setSession(session)
         setUser(session.user)
         void fetchProfile(session.user)
       } else {
+        setSession(null)
         setUser(null)
         setProfile(null)
       }
@@ -84,6 +88,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     await supabase.auth.signOut()
+    setSession(null)
     setUser(null)
     setProfile(null)
   }
@@ -91,6 +96,7 @@ export const AuthProvider = ({ children }) => {
   const value = {
     user,
     profile,
+    session,
     login,
     logout,
     isAuthenticated: !!user,

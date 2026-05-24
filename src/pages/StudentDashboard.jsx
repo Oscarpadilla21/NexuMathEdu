@@ -12,7 +12,7 @@ export default function StudentDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="flex min-h-screen w-full flex-col bg-gray-100">
       <DashboardHeader
         subtitle={profile?.full_name}
         userLabel="Estudiante"
@@ -25,7 +25,7 @@ export default function StudentDashboard() {
         variant="gradient"
       />
 
-      <main className="w-full px-4 sm:px-6 lg:px-8 py-8">
+      <main className="w-full flex-1 px-4 py-8 sm:px-6 lg:px-8">
         <section className="mb-6 bg-white rounded-lg shadow p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>

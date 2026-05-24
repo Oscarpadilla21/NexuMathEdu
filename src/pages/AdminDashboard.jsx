@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import DashboardHeader from '../components/layout/DashboardHeader'
+import UserModal from '../components/dashboard/UserModal'
+import CourseModal from '../components/dashboard/CourseModal'
 
 const EMPTY_USER = { email: '', full_name: '', role: 'student', password: '' }
 const EMPTY_COURSE = {
@@ -32,6 +34,7 @@ export default function AdminDashboard() {
   const [deleteCourseName, setDeleteCourseName] = useState('')
   const [studentSearchQuery, setStudentSearchQuery] = useState('')
   const [courseActionLoading, setCourseActionLoading] = useState(false)
+  const [userActionLoading, setUserActionLoading] = useState(false)
   const [newUser, setNewUser] = useState(EMPTY_USER)
   const [courseForm, setCourseForm] = useState(EMPTY_COURSE)
 
@@ -123,6 +126,7 @@ export default function AdminDashboard() {
         setLoadError('No se pudo leer auth.users desde la Edge Function. Se estan mostrando los perfiles disponibles en Supabase.')
       }
     } catch (error) {
+      console.warn('No se pudo cargar la lista completa de usuarios.', error)
       setLoadError('No se pudo cargar la lista completa de usuarios.')
     }
 
@@ -130,7 +134,11 @@ export default function AdminDashboard() {
   }
 
   useEffect(() => {
-    void fetchData()
+    const timer = window.setTimeout(() => {
+      void fetchData()
+    }, 0)
+
+    return () => window.clearTimeout(timer)
   }, [])
 
   const handleLogout = async () => {
@@ -289,7 +297,7 @@ export default function AdminDashboard() {
 
   const handleCreateUser = async (e) => {
     e.preventDefault()
-    setLoading(true)
+    setUserActionLoading(true)
 
     try {
       const { data, error } = await supabase.functions.invoke('create-user', {
@@ -310,13 +318,14 @@ export default function AdminDashboard() {
         setNewUser(EMPTY_USER)
         await fetchData()
       }
-    } catch (requestError) {
+    } catch (error) {
+      console.error('Error al invocar create-user', error)
       alert(
         'No se pudo enviar la solicitud a la Edge Function. Revisa que la funcion create-user este desplegada en Supabase y que el proyecto del frontend sea el mismo.'
       )
     }
 
-    setLoading(false)
+    setUserActionLoading(false)
   }
 
   const handleDeleteUser = async (userId, userEmail) => {
@@ -346,7 +355,7 @@ export default function AdminDashboard() {
   if (loading) return <div className="flex h-screen items-center justify-center">Loading...</div>
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="flex min-h-screen w-full flex-col bg-gray-100">
       <DashboardHeader
         subtitle={profile?.full_name || profile?.email}
         userLabel="Administrador"
@@ -359,7 +368,7 @@ export default function AdminDashboard() {
         variant="gradient"
       />
 
-      <main className="w-full space-y-8 px-4 py-8 sm:px-6 lg:px-8">
+      <main className="w-full flex-1 space-y-8 px-4 py-8 sm:px-6 lg:px-8">
         {loadError && (
           <section className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             {loadError}
@@ -531,194 +540,49 @@ export default function AdminDashboard() {
           </div>
         </section>
 
-        {showUserModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="w-full max-w-md rounded-lg bg-white p-6">
-              <h2 className="mb-4 text-xl font-bold">Crear nuevo usuario</h2>
-              <form onSubmit={handleCreateUser}>
-                <input
-                  type="email"
-                  placeholder="Email"
-                  value={newUser.email}
-                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                  className="mb-3 w-full rounded border px-3 py-2"
-                  required
-                />
-                <input
-                  type="text"
-                  placeholder="Nombre completo"
-                  value={newUser.full_name}
-                  onChange={(e) => setNewUser({ ...newUser, full_name: e.target.value })}
-                  className="mb-3 w-full rounded border px-3 py-2"
-                  required
-                />
-                <input
-                  type="password"
-                  placeholder="Contrasena"
-                  value={newUser.password}
-                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                  className="mb-3 w-full rounded border px-3 py-2"
-                  required
-                />
-                <select
-                  value={newUser.role}
-                  onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-                  className="mb-4 w-full rounded border px-3 py-2"
-                >
-                  <option value="student">Estudiante</option>
-                  <option value="teacher">Profesor</option>
-                </select>
-                <div className="flex gap-2">
-                  <button type="submit" className="flex-1 rounded bg-purple-600 px-4 py-2 text-white">
-                    Crear
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowUserModal(false)}
-                    className="flex-1 rounded bg-gray-300 px-4 py-2"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
+        <UserModal
+          open={showUserModal}
+          title="Crear nuevo usuario"
+          description="Crea cuentas de estudiante o profesor."
+          user={newUser}
+          onChange={(field, value) => setNewUser((current) => ({ ...current, [field]: value }))}
+          roleOptions={[
+            { value: 'student', label: 'Estudiante' },
+            { value: 'teacher', label: 'Profesor' },
+          ]}
+          onSubmit={handleCreateUser}
+          onClose={() => setShowUserModal(false)}
+          submitting={userActionLoading}
+          submitLabel="Crear"
+        />
 
-        {showCourseModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="w-full max-w-2xl rounded-lg bg-white p-6">
-              <h2 className="mb-4 text-xl font-bold">{editingCourseId ? 'Editar curso' : 'Crear curso'}</h2>
-              <form onSubmit={handleSaveCourse} className="space-y-3">
-                <input
-                  type="text"
-                  placeholder="Titulo"
-                  value={courseForm.title}
-                  onChange={(e) => setCourseForm({ ...courseForm, title: e.target.value })}
-                  className="w-full rounded border px-3 py-2"
-                  required
-                />
-                <textarea
-                  placeholder="Descripcion"
-                  value={courseForm.description}
-                  onChange={(e) => setCourseForm({ ...courseForm, description: e.target.value })}
-                  className="w-full rounded border px-3 py-2"
-                  rows="3"
-                />
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                  <input
-                    type="text"
-                    placeholder="Materia"
-                    value={courseForm.subject}
-                    onChange={(e) => setCourseForm({ ...courseForm, subject: e.target.value })}
-                    className="w-full rounded border px-3 py-2"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Grado"
-                    value={courseForm.grade_level}
-                    onChange={(e) => setCourseForm({ ...courseForm, grade_level: e.target.value })}
-                    className="w-full rounded border px-3 py-2"
-                  />
-                </div>
-                <select
-                  value={courseForm.teacher_id}
-                  onChange={(e) => setCourseForm({ ...courseForm, teacher_id: e.target.value })}
-                  className="w-full rounded border px-3 py-2"
-                >
-                  <option value="">Sin profesor asignado</option>
-                  {teacherUsers.map((teacher) => (
-                    <option key={teacher.id} value={teacher.id}>
-                      {teacher.full_name || teacher.email}
-                    </option>
-                  ))}
-                </select>
-                <label className="flex items-center gap-2 text-sm text-gray-700">
-                  <input
-                    type="checkbox"
-                    checked={courseForm.is_active}
-                    onChange={(e) => setCourseForm({ ...courseForm, is_active: e.target.checked })}
-                  />
-                  Curso activo
-                </label>
-                <div className="rounded border border-gray-200 p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <h3 className="text-sm font-semibold text-gray-800">Estudiantes del curso</h3>
-                      <p className="text-xs text-gray-500">Marca los estudiantes que quedaran inscritos en este curso.</p>
-                    </div>
-                    <span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-700">
-                      {courseForm.student_ids?.length || 0} seleccionados
-                    </span>
-                  </div>
-                  <input
-                    type="text"
-                    value={studentSearchQuery}
-                    onChange={(e) => setStudentSearchQuery(e.target.value)}
-                    placeholder="Buscar por nombre o correo"
-                    className="mt-4 w-full rounded border px-3 py-2 text-sm"
-                  />
-                  <div className="mt-4 max-h-56 overflow-y-auto pr-1">
-                    {filteredStudentUsers.length > 0 ? (
-                      <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                        {filteredStudentUsers.map((student) => {
-                          const checked = courseForm.student_ids?.includes(student.id)
-
-                          return (
-                            <label
-                              key={student.id}
-                              className={`flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2 text-sm transition ${
-                                checked ? 'border-purple-300 bg-purple-50' : 'border-gray-200 bg-white'
-                              }`}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={checked}
-                                onChange={() => toggleCourseStudent(student.id)}
-                                className="mt-1"
-                              />
-                              <span className="flex-1">
-                                <span className="block font-medium text-gray-800">
-                                  {student.full_name || student.email}
-                                </span>
-                                <span className="block text-xs text-gray-500">{student.email}</span>
-                              </span>
-                            </label>
-                          )
-                        })}
-                      </div>
-                    ) : (
-                      <div className="rounded-lg bg-gray-50 px-3 py-4 text-sm text-gray-500">
-                        No hay resultados para tu busqueda.
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="flex gap-2 pt-2">
-                  <button
-                    type="submit"
-                    disabled={courseActionLoading}
-                    className="flex-1 rounded bg-purple-600 px-4 py-2 text-white disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {courseActionLoading ? 'Guardando...' : 'Guardar'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowCourseModal(false)
-                      setEditingCourseId(null)
-                      setCourseForm(EMPTY_COURSE)
-                      setStudentSearchQuery('')
-                    }}
-                    className="flex-1 rounded bg-gray-300 px-4 py-2"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
+        <CourseModal
+          open={showCourseModal}
+          title={editingCourseId ? 'Editar curso' : 'Crear curso'}
+          description="Asigna el profesor y los estudiantes inscritos en este curso."
+          course={courseForm}
+          onChange={(field, value) => setCourseForm((current) => ({ ...current, [field]: value }))}
+          showTeacherSelect
+          teacherOptions={teacherUsers}
+          students={studentUsers}
+          studentSearch={studentSearchQuery}
+          onStudentSearchChange={setStudentSearchQuery}
+          onToggleStudent={toggleCourseStudent}
+          onSubmit={handleSaveCourse}
+          onClose={() => {
+            setShowCourseModal(false)
+            setEditingCourseId(null)
+            setCourseForm(EMPTY_COURSE)
+            setStudentSearchQuery('')
+          }}
+          submitting={courseActionLoading}
+          submitLabel={editingCourseId ? 'Guardar cambios' : 'Guardar'}
+          studentSectionTitle="Estudiantes del curso"
+          studentSectionDescription="Marca los estudiantes que quedaran inscritos en este curso."
+          searchPlaceholder="Buscar por nombre o correo"
+          noResultsMessage="No hay resultados para tu busqueda."
+          emptyStudentsMessage="Aun no hay estudiantes creados."
+        />
 
         {viewingCourseStudents && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">

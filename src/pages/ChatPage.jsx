@@ -1,297 +1,291 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { ChevronLeft, History, PanelRightOpen, Settings2, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import DashboardHeader from '../components/layout/DashboardHeader'
+import ChatComposer from '../components/chat/ChatComposer'
+import ChatMessageBubble from '../components/chat/ChatMessageBubble'
+import ChatSettingsPanel from '../components/chat/ChatSettingsPanel'
+import ChatThreadList from '../components/chat/ChatThreadList'
 import { useAuth } from '../contexts/AuthContext'
-import { supabase } from '../lib/supabase'
+import { fetchChatState, sendChatMessage } from '../lib/chatClient'
+import { buildDefaultChatSettings, getChatRoleProfile } from '../utils/chatPresets'
 
-const demoThreads = [
-  {
-    id: 'student-1',
-    name: 'Ana García',
-    role: 'student',
-    lastMessage: 'Necesito ayuda con ecuaciones lineales.',
-    messages: [
-      { id: 'm1', sender: 'student', content: 'Hola, ¿me ayudas con ecuaciones lineales?' },
-      { id: 'm2', sender: 'assistant', content: 'Claro. Empecemos despejando la variable paso a paso.' },
-    ],
-  },
-  {
-    id: 'teacher-1',
-    name: 'Carlos Ruiz',
-    role: 'teacher',
-    lastMessage: 'Quiero generar una actividad para geometría.',
-    messages: [
-      { id: 'm1', sender: 'teacher', content: 'Necesito una actividad rápida de geometría para 8°.' },
-      { id: 'm2', sender: 'assistant', content: 'Te propongo 3 ejercicios con figuras y áreas para resolver en clase.' },
-    ],
-  },
-]
+function Modal({ open, title, onClose, children, widthClass = 'max-w-2xl' }) {
+  if (!open) return null
 
-const makeAssistantReply = (text) =>
-  `Te ayudo con eso. ${text?.trim() ? 'Revisemos tu idea y la resolvemos paso a paso.' : '¿Qué parte te gustaría que trabajemos primero?'}`
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-3 sm:p-4">
+      <div className={`flex h-[92svh] w-full ${widthClass} flex-col overflow-hidden rounded-[2rem] bg-white shadow-2xl`}>
+        <div className="flex items-center justify-between border-b border-[#ece8f6] px-4 py-4 sm:px-6">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#9d31ff]">{title}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex items-center gap-2 rounded-2xl border border-[#ece8f6] bg-white px-3 py-2 text-sm text-slate-700 transition hover:bg-[#f8faff]"
+          >
+            <X className="h-4 w-4" />
+            Cerrar
+          </button>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">{children}</div>
+      </div>
+    </div>
+  )
+}
 
 export default function ChatPage() {
-  const { profile, logout, role } = useAuth()
+  const { profile, role, session, logout } = useAuth()
   const navigate = useNavigate()
-  const isAdmin = role === 'admin'
-  const [threads, setThreads] = useState(demoThreads)
-  const [selectedThreadId, setSelectedThreadId] = useState(demoThreads[0]?.id || null)
-  const [draft, setDraft] = useState('')
+  const bottomRef = useRef(null)
+  const roleProfile = useMemo(() => getChatRoleProfile(role), [role])
+  const [threads, setThreads] = useState([])
+  const [activeThreadId, setActiveThreadId] = useState(null)
+  const [messages, setMessages] = useState([])
+  const [settings, setSettings] = useState(() => buildDefaultChatSettings(role))
   const [loading, setLoading] = useState(true)
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState('')
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+
+  useEffect(() => {
+    const loadChat = async () => {
+      if (!session?.access_token) {
+        setLoading(false)
+        return
+      }
+
+      setLoading(true)
+      setError('')
+
+      try {
+        const data = await fetchChatState({ accessToken: session.access_token })
+        setThreads(data?.threads || [])
+        setActiveThreadId(data?.active_thread_id || null)
+        setMessages(data?.messages || [])
+      } catch (chatError) {
+        setError(chatError?.message || 'No se pudo cargar el historial del chat.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    void loadChat()
+  }, [session?.access_token])
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+  }, [messages, activeThreadId])
 
   const handleLogout = async () => {
     await logout()
     navigate('/login')
   }
 
-  useEffect(() => {
-    let active = true
-
-    const loadThreads = async () => {
-      if (!profile?.id) {
-        setLoading(false)
-        return
-      }
-
-      try {
-        if (isAdmin) {
-          const { data } = await supabase
-            .from('profiles')
-            .select('id, full_name, email, role, created_at')
-            .in('role', ['teacher', 'student'])
-            .order('created_at', { ascending: false })
-
-          if (!active) return
-
-          const mappedThreads = (data || []).map((item, index) => ({
-            id: item.id,
-            name: item.full_name || item.email || `Usuario ${index + 1}`,
-            role: item.role,
-            lastMessage: item.role === 'teacher'
-              ? 'Consulta pedagógica con la IA.'
-              : 'Sesión de práctica con la IA.',
-            messages: [
-              {
-                id: `${item.id}-1`,
-                sender: item.role,
-                content: `Hola IA, soy ${item.full_name || item.email}.`,
-              },
-              {
-                id: `${item.id}-2`,
-                sender: 'assistant',
-                content: item.role === 'teacher'
-                  ? 'Aquí tienes una propuesta didáctica con objetivos, ejemplos y una actividad breve.'
-                  : 'Vamos a resolverlo juntos, con ejemplos cortos y claros.',
-              },
-            ],
-          }))
-
-          setThreads(mappedThreads.length > 0 ? mappedThreads : demoThreads)
-          setSelectedThreadId((current) => current || mappedThreads[0]?.id || demoThreads[0]?.id || null)
-        } else {
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('id, full_name, email, role')
-            .eq('id', profile.id)
-            .maybeSingle()
-
-          if (!active) return
-
-          const ownerName = profileData?.full_name || profileData?.email || profile.full_name || profile.email
-
-          setThreads([
-            {
-              id: profile.id,
-              name: `Chat IA de ${ownerName}`,
-              role,
-              lastMessage: 'Escribe tu duda para recibir ayuda.',
-              messages: [
-                { id: 'welcome-1', sender: 'assistant', content: `Hola ${ownerName}. Soy tu asistente de matemáticas.` },
-                { id: 'welcome-2', sender: role, content: 'Quiero practicar un tema de matemáticas.' },
-                { id: 'welcome-3', sender: 'assistant', content: 'Perfecto. Dime el tema y lo trabajamos paso a paso.' },
-              ],
-            },
-          ])
-          setSelectedThreadId(profile.id)
-        }
-      } catch (error) {
-        console.warn('No se pudieron cargar los chats, usando demo local.', error)
-        if (active) {
-          setThreads(demoThreads)
-          setSelectedThreadId(demoThreads[0]?.id || null)
-        }
-      } finally {
-        if (active) setLoading(false)
-      }
-    }
-
-    void loadThreads()
-
-    return () => {
-      active = false
-    }
-  }, [isAdmin, profile?.email, profile?.full_name, profile?.id, role])
-
-  const activeThread = useMemo(
-    () => threads.find((thread) => thread.id === selectedThreadId) || threads[0] || null,
-    [selectedThreadId, threads]
-  )
-
-  const handleSendMessage = (event) => {
-    event.preventDefault()
-    if (!draft.trim() || isAdmin || !activeThread) return
-
-    const nextUserMessage = { id: `${Date.now()}-user`, sender: role, content: draft.trim() }
-    const nextAssistantMessage = {
-      id: `${Date.now()}-assistant`,
-      sender: 'assistant',
-      content: makeAssistantReply(draft),
-    }
-
-    setThreads((current) =>
-      current.map((thread) =>
-        thread.id === activeThread.id
-          ? { ...thread, messages: [...thread.messages, nextUserMessage, nextAssistantMessage], lastMessage: nextAssistantMessage.content }
-          : thread
-      )
-    )
-    setDraft('')
+  const handleUpdateSettings = (partial) => {
+    setSettings((current) => ({ ...current, ...partial }))
   }
 
+  const handleSelectThread = async (threadId) => {
+    if (!session?.access_token) return
+
+    setError('')
+    setHistoryOpen(false)
+
+    try {
+      const data = await fetchChatState({ accessToken: session.access_token, threadId })
+      setThreads(data?.threads || [])
+      setActiveThreadId(data?.active_thread_id || threadId)
+      setMessages(data?.messages || [])
+    } catch (chatError) {
+      setError(chatError?.message || 'No se pudo abrir esa conversación.')
+    }
+  }
+
+  const handleNewThread = () => {
+    setActiveThreadId(null)
+    setMessages([])
+    setHistoryOpen(false)
+  }
+
+  const handleSendMessage = async (content) => {
+    if (!session?.access_token) return
+
+    setSending(true)
+    setError('')
+
+    try {
+      const data = await sendChatMessage({
+        accessToken: session.access_token,
+        message: content,
+        threadId: activeThreadId,
+        settings,
+      })
+
+      setThreads(data?.threads || [])
+      setActiveThreadId(data?.thread_id || activeThreadId)
+      setMessages(data?.messages || [])
+      setHistoryOpen(false)
+    } catch (chatError) {
+      setError(chatError?.message || 'No se pudo enviar el mensaje.')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  const navItems = [
+    { label: 'Inicio', to: `/${role || 'login'}` },
+    { label: 'Mi perfil', to: '/perfil' },
+    { label: 'Chat', to: '/chat' },
+  ]
+
+  const chatHeader = messages.length > 0 ? 'Conversacion activa' : 'Tu asistente esta listo'
+  const emptyStateText = roleProfile.welcomeText || 'Escribe una pregunta para iniciar una nueva conversación con el asistente.'
+  const actionGradient = 'from-[#9d31ff] to-[#ff318c]'
+
   if (loading) {
-    return <div className="flex h-screen items-center justify-center">Cargando...</div>
+    return (
+      <div className="h-screen overflow-hidden bg-[#f8faff] text-slate-900">
+        <DashboardHeader
+          subtitle={profile?.full_name || profile?.email}
+          userLabel={roleProfile.label}
+          navItems={navItems}
+          onLogout={handleLogout}
+          variant="gradient"
+          showSubtitle={false}
+        />
+        <div className="flex h-[calc(100svh-64px)] items-center justify-center p-6">
+          <div className="rounded-3xl border border-[#ece8f6] bg-white px-6 py-5 text-sm text-slate-700 shadow-2xl">
+            Cargando tu espacio de chat...
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="h-screen overflow-hidden bg-[#f8faff] text-slate-900">
+      <div className="absolute left-1/4 top-16 h-72 w-72 rounded-full bg-[#9d31ff]/20 blur-3xl" />
+      <div className="absolute right-1/4 top-24 h-72 w-72 rounded-full bg-[#ff318c]/20 blur-3xl" />
+      <div className="absolute bottom-0 left-0 h-80 w-80 rounded-full bg-[#9d31ff]/10 blur-3xl" />
+
       <DashboardHeader
         subtitle={profile?.full_name || profile?.email}
-        userLabel={isAdmin ? 'Administrador' : role === 'teacher' ? 'Profesor' : 'Estudiante'}
-        navItems={[
-          { label: 'Inicio', to: `/${role || 'login'}` },
-          { label: 'Mi perfil', to: '/perfil' },
-          { label: 'Chat', to: '/chat' },
-        ]}
+        userLabel={roleProfile.label}
+        navItems={navItems}
         onLogout={handleLogout}
         variant="gradient"
+        showSubtitle={false}
       />
 
-      <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
-        <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-200 px-6 py-6 sm:px-8">
-            <p className="text-sm uppercase tracking-[0.25em] text-slate-500">Chat IA</p>
-            <h1 className="mt-2 text-3xl font-semibold text-slate-900">
-              {isAdmin ? 'Supervisión de conversaciones' : 'Tu espacio de práctica'}
-            </h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-              {isAdmin
-                ? 'El administrador puede consultar los chats de estudiantes y profesores con la IA, sin intervenir en la conversación.'
-                : 'Aquí puedes practicar con la IA. La vista de perfil y la de chat ya están separadas del panel principal.'}
-            </p>
+      <main className="relative h-[calc(100svh-64px)] w-full overflow-hidden px-3 py-3 sm:px-4 lg:px-6">
+        <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[2rem] border border-[#ece8f6] bg-white shadow-2xl">
+          <div className="flex items-center justify-between gap-2 border-b border-[#ece8f6] px-2 py-1 sm:px-3 sm:py-1">
+            <div className="min-w-0 leading-none">
+              <h1 className="truncate text-sm font-semibold text-slate-900 sm:text-base">{chatHeader}</h1>
+              <p className="hidden truncate text-[10px] text-slate-500 sm:block sm:text-[10px]">
+                Rol: {roleProfile.label.toLowerCase()}
+              </p>
+            </div>
+
+            <div className="flex flex-shrink-0 items-center gap-1">
+              <button
+                type="button"
+                onClick={handleNewThread}
+                className={`inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r ${actionGradient} px-2.5 py-2 text-[11px] font-semibold text-white shadow-lg transition hover:brightness-110 sm:px-3 sm:py-2 sm:text-xs lg:text-sm`}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                <span className="hidden sm:inline">Nuevo chat</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setHistoryOpen(true)}
+                className="inline-flex items-center gap-2 rounded-2xl border border-[#ece8f6] bg-white px-2.5 py-2 text-[11px] font-semibold text-slate-700 transition hover:bg-[#f8faff] sm:px-3 sm:py-2 sm:text-xs lg:text-sm"
+              >
+                <History className="h-4 w-4" />
+                <span className="hidden sm:inline">Historial</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSettingsOpen(true)}
+                className="inline-flex items-center gap-2 rounded-2xl border border-[#ece8f6] bg-white px-2.5 py-2 text-[11px] font-semibold text-slate-700 transition hover:bg-[#f8faff] sm:px-3 sm:py-2 sm:text-xs lg:text-sm"
+              >
+                <Settings2 className="h-4 w-4" />
+                <span className="hidden sm:inline">Configuración</span>
+              </button>
+            </div>
           </div>
 
-          <div className="grid gap-0 lg:grid-cols-[320px_1fr]">
-            <aside className="border-b border-slate-200 bg-slate-50 lg:border-b-0 lg:border-r">
-              <div className="border-b border-slate-200 px-5 py-4">
-                <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
-                  {isAdmin ? 'Conversaciones' : 'Mi conversación'}
-                </h2>
-              </div>
+          {error && (
+            <div className="mx-4 mt-4 rounded-2xl border border-[#ffd4e7] bg-[#fff5fb] px-4 py-3 text-sm text-[#9d31ff] sm:mx-6">
+              {error}
+            </div>
+          )}
 
-              <div className="max-h-[520px] overflow-y-auto p-3">
-                {threads.map((thread) => (
-                  <button
-                    key={thread.id}
-                    onClick={() => setSelectedThreadId(thread.id)}
-                    className={`mb-2 w-full rounded-2xl border px-4 py-4 text-left transition ${
-                      thread.id === activeThread?.id
-                        ? 'border-indigo-300 bg-indigo-50'
-                        : 'border-transparent bg-white hover:border-slate-200 hover:bg-white'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold text-slate-900">{thread.name}</p>
-                        <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{thread.role}</p>
-                      </div>
-                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
-                        IA
-                      </span>
-                    </div>
-                    <p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-600">{thread.lastMessage}</p>
-                  </button>
-                ))}
-              </div>
-            </aside>
+          <div className="flex min-h-0 flex-1 flex-col">
+            <div className="min-h-0 flex-1 overflow-y-auto bg-[linear-gradient(180deg,_#ffffff_0%,_#fffafe_100%)] px-3 py-3 sm:px-6 sm:py-4">
+              <div className="space-y-4">
+                {messages.length > 0 ? (
+                  messages.map((message) => {
+                    const isUser = message.sender_role !== 'assistant'
 
-            <section className="flex min-h-[520px] flex-col">
-              <div className="border-b border-slate-200 px-5 py-4 sm:px-6">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <h2 className="text-lg font-semibold text-slate-900">{activeThread?.name || 'Chat IA'}</h2>
-                    <p className="text-sm text-slate-500">
-                      {isAdmin ? 'Solo lectura para administración' : 'Respuestas automáticas activas'}
-                    </p>
-                  </div>
-                  <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-                    Conectado a IA
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex-1 space-y-4 overflow-y-auto bg-white px-5 py-6 sm:px-6">
-                {activeThread?.messages?.map((message) => {
-                  const isAssistant = message.sender === 'assistant'
-                  const isMine = message.sender === role
-
-                  return (
-                    <div
-                      key={message.id}
-                      className={`flex ${isAssistant ? 'justify-start' : isMine ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div
-                        className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm ${
-                          isAssistant
-                            ? 'bg-slate-100 text-slate-700'
-                            : isMine
-                              ? 'bg-indigo-600 text-white'
-                              : 'bg-amber-50 text-amber-900'
-                        }`}
-                      >
-                        {message.content}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-
-              <div className="border-t border-slate-200 bg-slate-50 px-5 py-4 sm:px-6">
-                {isAdmin ? (
-                  <p className="text-sm text-slate-500">
-                    Esta vista es de consulta únicamente para el administrador.
-                  </p>
+                    return (
+                      <ChatMessageBubble
+                        key={message.id}
+                        message={message}
+                        isUser={isUser}
+                        accentClass={roleProfile.accent}
+                      />
+                    )
+                  })
                 ) : (
-                  <form onSubmit={handleSendMessage} className="flex gap-3">
-                    <input
-                      type="text"
-                      value={draft}
-                      onChange={(e) => setDraft(e.target.value)}
-                      placeholder="Escribe tu pregunta de matemáticas..."
-                      className="min-w-0 flex-1 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-indigo-500"
-                    />
-                    <button
-                      type="submit"
-                      className="rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700"
-                    >
-                      Enviar
-                    </button>
-                  </form>
+                  <div className="grid min-h-[30vh] place-items-center rounded-[2rem] border border-dashed border-[#ece8f6] bg-[#fafafa] px-6 py-10 text-center">
+                    <div className="max-w-xl">
+                      <div className={`mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br ${roleProfile.accent} shadow-lg ${roleProfile.glow}`}>
+                        <PanelRightOpen className="h-7 w-7 text-white" />
+                      </div>
+                      <h3 className="mt-5 text-xl font-semibold text-slate-900">{roleProfile.welcomeTitle}</h3>
+                      <p className="mt-3 text-sm leading-6 text-slate-600">{emptyStateText}</p>
+                    </div>
+                  </div>
                 )}
+                <div ref={bottomRef} />
               </div>
-            </section>
+            </div>
+
+            <ChatComposer
+              onSend={handleSendMessage}
+              placeholder={`Pregunta como ${roleProfile.label.toLowerCase()}...`}
+              disabled={sending || !session?.access_token}
+              sending={sending}
+            />
           </div>
         </section>
       </main>
+
+      <Modal open={historyOpen} title="Historial" onClose={() => setHistoryOpen(false)} widthClass="max-w-3xl">
+        <ChatThreadList
+          threads={threads}
+          activeThreadId={activeThreadId}
+          onSelectThread={handleSelectThread}
+          onNewThread={handleNewThread}
+          profileLabel={roleProfile.welcomeTitle}
+          profileText={roleProfile.welcomeText}
+          profileAccent={roleProfile.accent}
+        />
+      </Modal>
+
+      <Modal open={settingsOpen} title="Configuración" onClose={() => setSettingsOpen(false)} widthClass="max-w-2xl">
+        <ChatSettingsPanel
+          role={role}
+          settings={settings}
+          onChange={handleUpdateSettings}
+          onReset={() => setSettings(buildDefaultChatSettings(role))}
+          profileAccent={roleProfile.accent}
+        />
+      </Modal>
     </div>
   )
 }
