@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, ArrowRight } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getRouteForRole } from '../utils/roleRoutes';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -18,6 +19,17 @@ const Login = () => {
       navigate(getRouteForRole(role, isAuthenticated), { replace: true });
     }
   }, [authLoading, isAuthenticated, navigate, role]);
+
+  if (authLoading && isAuthenticated) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-[#f8faff]">
+        <div className="rounded-3xl border border-slate-200 bg-white px-10 py-8 shadow-xl text-center">
+          <p className="text-lg font-semibold text-slate-900">Cargando sesión...</p>
+          <p className="mt-2 text-sm text-slate-500">Un momento mientras verificamos tu cuenta.</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -81,7 +93,7 @@ const Login = () => {
             </label>
             <div className="relative">
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 placeholder="Contraseña"
                 value={password}
                 onChange={(e) => {
@@ -90,7 +102,14 @@ const Login = () => {
                 }}
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-400 focus:bg-white outline-none transition-all text-gray-700"
               />
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-blue-400"></div>
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
           </div>
 

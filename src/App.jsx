@@ -10,24 +10,7 @@ import ChatPage from './pages/ChatPage'
 import { getRouteForRole } from './utils/roleRoutes'
 
 function AppRoutes() {
-  const { role, loading, isAuthenticated } = useAuth()
-
-  // Mientras llega la sesion, mostramos una pantalla simple para evitar parpadeos.
-  if (loading) {
-    return <div className="flex h-screen items-center justify-center">Cargando...</div>
-  }
-
-  // Si hay sesion pero no existe rol, mostramos un estado de recuperacion.
-  if (isAuthenticated && !role) {
-    return (
-      <div className="flex h-screen items-center justify-center p-6 text-center">
-        <div>
-          <h1 className="text-2xl font-semibold mb-2">Perfil no configurado</h1>
-          <p className="text-gray-600">La sesión está activa, pero no pudimos resolver tu rol desde Supabase.</p>
-        </div>
-      </div>
-    )
-  }
+  const { role, isAuthenticated } = useAuth()
 
   return (
     <Routes>

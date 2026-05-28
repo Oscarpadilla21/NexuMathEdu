@@ -14,7 +14,8 @@ export const AuthProvider = ({ children }) => {
 
   async function fetchProfile(userRecord) {
     // Primero intentamos leer el perfil desde la tabla; si falla, caemos a metadata.
-    const fallbackRole = userRecord?.user_metadata?.role || userRecord?.app_metadata?.role || null
+    const fallbackRole =
+      userRecord?.user_metadata?.role || userRecord?.app_metadata?.role || 'student'
 
     try {
       const { data, error } = await supabase
@@ -31,31 +32,29 @@ export const AuthProvider = ({ children }) => {
       console.warn('Profile lookup failed, using auth metadata fallback.', error)
     }
 
-    if (fallbackRole) {
-      const fallbackProfile = {
-        id: userRecord.id,
-        email: userRecord.email,
-        full_name: userRecord?.user_metadata?.full_name || userRecord.email,
-        role: fallbackRole,
-      }
-
-      setProfile(fallbackProfile)
-      return fallbackProfile
+    const fallbackProfile = {
+      id: userRecord.id,
+      email: userRecord.email,
+      full_name: userRecord?.user_metadata?.full_name || userRecord.email,
+      role: fallbackRole,
     }
 
-    return null
+    setProfile(fallbackProfile)
+    return fallbackProfile
   }
 
   useEffect(() => {
     const initializeAuth = async () => {
       // Resolvemos la sesion actual cuando la app arranca.
+      setLoading(true)
+
       try {
         const { data: { session } } = await supabase.auth.getSession()
 
         if (session?.user) {
           setSession(session)
           setUser(session.user)
-          void fetchProfile(session.user)
+          await fetchProfile(session.user)
         }
       } catch (error) {
         console.error('Failed to initialize auth session', error)
@@ -67,18 +66,21 @@ export const AuthProvider = ({ children }) => {
     initializeAuth()
 
     // Escuchamos cambios de autenticacion para mantener el estado sincronizado.
-    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+    const handleAuthChange = async (event, session) => {
       if (session?.user) {
+        setLoading(true)
         setSession(session)
         setUser(session.user)
-        void fetchProfile(session.user)
+        await fetchProfile(session.user)
       } else {
         setSession(null)
         setUser(null)
         setProfile(null)
       }
       setLoading(false)
-    })
+    }
+
+    const { data: listener } = supabase.auth.onAuthStateChange(handleAuthChange)
 
     return () => listener?.subscription.unsubscribe()
   }, [])
@@ -103,6 +105,13 @@ export const AuthProvider = ({ children }) => {
     setProfile(null)
   }
 
+  const updatePassword = async (password) => {
+    const { data, error } = await supabase.auth.updateUser({ password })
+    if (error) throw error
+    if (data?.user) setUser(data.user)
+    return data
+  }
+
   const value = {
     // Exponemos todo lo que el resto de la app necesita saber del usuario.
     user,
@@ -110,6 +119,7 @@ export const AuthProvider = ({ children }) => {
     session,
     login,
     logout,
+    updatePassword,
     isAuthenticated: !!user,
     role: profile?.role || null,
     hasProfile: !!profile,

@@ -837,7 +837,7 @@ export default function TeacherDashboard() {
           <div className="flex flex-col gap-3 border-b border-[#ece8f6] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-lg font-semibold text-slate-900">Alumnos guardados</h2>
-              <p className="text-sm text-slate-500">Los perfiles que ya están guardados en Supabase.</p>
+              <p className="text-sm text-slate-500">Los perfiles que ya están guardados .</p>
             </div>
             <label className="flex items-center gap-2 rounded-2xl border border-[#ece8f6] bg-[#fafafa] px-3 py-2">
               <Search className="h-4 w-4 text-slate-400" />

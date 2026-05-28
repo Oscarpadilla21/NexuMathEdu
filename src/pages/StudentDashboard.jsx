@@ -32,12 +32,25 @@ async function loadStudentDashboardData({
     })
 
     if (functionError) {
-      throw functionError
+      console.error('Function error:', functionError)
+      setCourses([])
+      setEnrollments([])
+      return
+    }
+
+    if (data?.error) {
+      console.warn('Function returned error:', data.error)
+      setCourses([])
+      setEnrollments([])
+      return
     }
 
     setCourses(data?.courses || [])
     setEnrollments(data?.enrollments || [])
   } catch (fetchError) {
+    console.error('Fetch error:', fetchError)
+    setCourses([])
+    setEnrollments([])
     setError(fetchError?.message || 'No se pudo cargar tus notas.')
   } finally {
     setLoading(false)

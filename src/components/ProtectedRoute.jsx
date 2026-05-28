@@ -2,12 +2,7 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
 export const ProtectedRoute = ({ children, allowedRoles = [] }) => {
-  const { isAuthenticated, role, loading } = useAuth();
-
-  // Evitamos redirigir antes de conocer la sesion real.
-  if (loading) {
-    return <div className="flex h-screen items-center justify-center">Cargando...</div>;
-  }
+  const { isAuthenticated, role } = useAuth();
 
   // Si no hay sesion, la entrada correcta es el login.
   if (!isAuthenticated) {

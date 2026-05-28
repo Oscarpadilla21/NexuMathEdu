@@ -1,4 +1,5 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
+import { Eye, EyeOff } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import DashboardHeader from '../components/layout/DashboardHeader'
 import { useAuth } from '../contexts/AuthContext'
@@ -10,13 +11,71 @@ const roleLabels = {
 }
 
 export default function ProfilePage() {
-  const { profile, logout, role } = useAuth()
+  const { profile, logout, role, login, updatePassword } = useAuth()
   const navigate = useNavigate()
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [statusMessage, setStatusMessage] = useState(null)
+  const [statusType, setStatusType] = useState('')
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
 
   // Cerramos sesion y volvemos al login.
   const handleLogout = async () => {
     await logout()
     navigate('/login')
+  }
+
+  const handlePasswordChange = async (event) => {
+    event.preventDefault()
+    setStatusMessage(null)
+    setStatusType('')
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setStatusMessage('Por favor completa todos los campos.')
+      setStatusType('error')
+      return
+    }
+
+    if (newPassword.length < 8) {
+      setStatusMessage('La nueva contraseña debe tener al menos 8 caracteres.')
+      setStatusType('error')
+      return
+    }
+
+    if (newPassword !== confirmPassword) {
+      setStatusMessage('Las contraseñas no coinciden.')
+      setStatusType('error')
+      return
+    }
+
+    try {
+      setIsChangingPassword(true)
+
+      if (!profile?.email) {
+        throw new Error('No se encontró el correo del usuario para verificar la sesión.')
+      }
+
+      await login(profile.email, currentPassword)
+      await updatePassword(newPassword)
+
+      setStatusMessage('Contraseña actualizada correctamente.')
+      setStatusType('success')
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+    } catch (error) {
+      console.error('Password update failed', error)
+      setStatusMessage(
+        error?.message || 'No se pudo actualizar la contraseña. Intenta de nuevo más tarde.'
+      )
+      setStatusType('error')
+    } finally {
+      setIsChangingPassword(false)
+    }
   }
 
   // Mostramos iniciales a partir del nombre o correo para tener un avatar simple.
@@ -110,6 +169,90 @@ export default function ProfilePage() {
                     Volver al inicio
                   </button>
                 </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">Cambiar contraseña</p>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Actualiza tu contraseña para mantener segura tu cuenta.
+                    </p>
+                  </div>
+                </div>
+
+                <form className="mt-5 space-y-4" onSubmit={handlePasswordChange}>
+                  <div className="relative">
+                    <label className="text-sm font-medium text-slate-700">Contraseña actual</label>
+                    <input
+                      type={showCurrentPassword ? 'text' : 'password'}
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 pr-12 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                      placeholder="Ingresa tu contraseña actual"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPassword((prev) => !prev)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900"
+                      aria-label={showCurrentPassword ? 'Ocultar contraseña actual' : 'Mostrar contraseña actual'}
+                    >
+                      {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+
+                  <div className="relative">
+                    <label className="text-sm font-medium text-slate-700">Nueva contraseña</label>
+                    <input
+                      type={showNewPassword ? 'text' : 'password'}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 pr-12 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                      placeholder="Ingresa tu nueva contraseña"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword((prev) => !prev)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900"
+                      aria-label={showNewPassword ? 'Ocultar nueva contraseña' : 'Mostrar nueva contraseña'}
+                    >
+                      {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+
+                  <div className="relative">
+                    <label className="text-sm font-medium text-slate-700">Confirmar nueva contraseña</label>
+                    <input
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 pr-12 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                      placeholder="Repite tu nueva contraseña"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword((prev) => !prev)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900"
+                      aria-label={showConfirmPassword ? 'Ocultar confirmación de contraseña' : 'Mostrar confirmación de contraseña'}
+                    >
+                      {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+
+                  {statusMessage && (
+                    <p className={`text-sm ${statusType === 'success' ? 'text-emerald-700' : 'text-rose-600'}`}>
+                      {statusMessage}
+                    </p>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={isChangingPassword}
+                    className="inline-flex w-full items-center justify-center rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                  >
+                    {isChangingPassword ? 'Actualizando...' : 'Guardar contraseña'}
+                  </button>
+                </form>
               </div>
 
               <div className="rounded-2xl border border-slate-200 bg-white p-5">
