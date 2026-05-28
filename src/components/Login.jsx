@@ -9,16 +9,15 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [loginSuccess, setLoginSuccess] = useState(false);
 
   const navigate = useNavigate();
   const { login, isAuthenticated, role, loading: authLoading } = useAuth();
 
   useEffect(() => {
-    if (isAuthenticated && loginSuccess && !authLoading && role) {
+    if (isAuthenticated && !authLoading && role) {
       navigate(getRouteForRole(role, isAuthenticated), { replace: true });
     }
-  }, [authLoading, isAuthenticated, loginSuccess, navigate, role]);
+  }, [authLoading, isAuthenticated, navigate, role]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -27,7 +26,6 @@ const Login = () => {
 
     try {
       await login(email, password);
-      setLoginSuccess(true);
     } catch (err) {
       setError(err?.message || 'Credenciales incorrectas');
     } finally {
@@ -66,7 +64,10 @@ const Login = () => {
                 type="email"
                 placeholder="tu@email.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value)
+                  if (error) setError('')
+                }}
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-400 focus:bg-white outline-none transition-all text-gray-700"
               />
               <div className="absolute right-4 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-pink-400"></div>
@@ -83,7 +84,10 @@ const Login = () => {
                 type="password"
                 placeholder="Contraseña"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value)
+                  if (error) setError('')
+                }}
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-400 focus:bg-white outline-none transition-all text-gray-700"
               />
               <div className="absolute right-4 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-blue-400"></div>
@@ -96,7 +100,7 @@ const Login = () => {
             </div>
           )}
 
-          {isAuthenticated && loginSuccess && !authLoading && !role && (
+          {isAuthenticated && !authLoading && !role && (
             <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-700">
               Tu sesión inició, pero no pudimos leer tu rol. Revisa la tabla profiles en Supabase.
             </div>

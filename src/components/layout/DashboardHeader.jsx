@@ -12,6 +12,7 @@ export default function DashboardHeader({
   const [menuOpen, setMenuOpen] = useState(false)
 
   return (
+    // Barra superior comun para las pantallas con navegacion por rol.
     <header
       className={`sticky top-0 z-50 border-b shadow-xl ${
         variant === 'gradient'
@@ -36,12 +37,13 @@ export default function DashboardHeader({
             )}
           </div>
 
+          {/* Boton hamburguesa para menu responsive. */}
           <button
             onClick={() => setMenuOpen(!menuOpen)}
             className={`group relative flex h-10 w-10 items-center justify-center rounded-xl transition-all active:scale-95 ${
               variant === 'gradient' ? 'bg-white/15 hover:bg-white/20' : 'bg-white/5 hover:bg-white/10'
             }`}
-            aria-label="Menú"
+            aria-label="MenÃº"
           >
             <div className="flex flex-col gap-1.5">
               <span className={`h-0.5 w-5 rounded-full bg-white transition-all ${menuOpen ? 'translate-y-2 rotate-45' : ''}`} />
@@ -51,6 +53,7 @@ export default function DashboardHeader({
           </button>
         </div>
 
+        {/* Panel flotante con enlaces y salida de sesion. */}
         <div
           className={`absolute left-4 right-4 top-[72px] transition-all duration-300 ${
             menuOpen ? 'translate-y-0 opacity-100' : '-translate-y-4 pointer-events-none opacity-0'

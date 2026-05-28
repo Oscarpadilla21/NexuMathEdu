@@ -40,6 +40,8 @@ export default function ChatPage() {
   const navigate = useNavigate()
   const bottomRef = useRef(null)
   const roleProfile = useMemo(() => getChatRoleProfile(role), [role])
+
+  // Estado principal de la pantalla: conversaciones, mensajes, ajustes y modales.
   const [threads, setThreads] = useState([])
   const [activeThreadId, setActiveThreadId] = useState(null)
   const [messages, setMessages] = useState([])
@@ -52,6 +54,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     const loadChat = async () => {
+      // Sin token no tenemos nada que cargar desde el backend.
       if (!session?.access_token) {
         setLoading(false)
         return
@@ -61,6 +64,7 @@ export default function ChatPage() {
       setError('')
 
       try {
+        // Cargamos hilos y mensajes del usuario desde la funcion de servidor.
         const data = await fetchChatState({ accessToken: session.access_token })
         setThreads(data?.threads || [])
         setActiveThreadId(data?.active_thread_id || null)
@@ -76,6 +80,7 @@ export default function ChatPage() {
   }, [session?.access_token])
 
   useEffect(() => {
+    // Cuando llegan mensajes nuevos, llevamos la vista al final del hilo.
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
   }, [messages, activeThreadId])
 
@@ -85,6 +90,7 @@ export default function ChatPage() {
   }
 
   const handleUpdateSettings = (partial) => {
+    // Mezclamos solo la parte modificada para no perder el resto de ajustes.
     setSettings((current) => ({ ...current, ...partial }))
   }
 
@@ -95,16 +101,18 @@ export default function ChatPage() {
     setHistoryOpen(false)
 
     try {
+      // Traemos el hilo elegido y reemplazamos el estado visible con ese contenido.
       const data = await fetchChatState({ accessToken: session.access_token, threadId })
       setThreads(data?.threads || [])
       setActiveThreadId(data?.active_thread_id || threadId)
       setMessages(data?.messages || [])
     } catch (chatError) {
-      setError(chatError?.message || 'No se pudo abrir esa conversación.')
+      setError(chatError?.message || 'No se pudo abrir esa conversacion.')
     }
   }
 
   const handleNewThread = () => {
+    // Reiniciamos el estado local para arrancar una charla nueva.
     setActiveThreadId(null)
     setMessages([])
     setHistoryOpen(false)
@@ -117,6 +125,7 @@ export default function ChatPage() {
     setError('')
 
     try {
+      // Enviamos el mensaje y luego sincronizamos todo con la respuesta del servidor.
       const data = await sendChatMessage({
         accessToken: session.access_token,
         message: content,
@@ -141,8 +150,9 @@ export default function ChatPage() {
     { label: 'Chat', to: '/chat' },
   ]
 
-  const chatHeader = messages.length > 0 ? 'Conversacion activa' : 'Tu asistente esta listo'
-  const emptyStateText = roleProfile.welcomeText || 'Escribe una pregunta para iniciar una nueva conversación con el asistente.'
+  // Cambiamos el titulo segun haya o no mensajes visibles.
+  const chatHeader = messages.length > 0 ? 'Conversacion activa' : 'Tu chat esta listo'
+  const emptyStateText = roleProfile.welcomeText || 'Escribe una pregunta para iniciar una nueva conversacion.'
   const actionGradient = 'from-[#9d31ff] to-[#ff318c]'
 
   if (loading) {
@@ -180,6 +190,7 @@ export default function ChatPage() {
         showSubtitle={false}
       />
 
+      {/* Contenedor principal de la experiencia de chat. */}
       <main className="relative h-[calc(100svh-64px)] w-full overflow-hidden px-3 py-3 sm:px-4 lg:px-6">
         <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[2rem] border border-[#ece8f6] bg-white shadow-2xl">
           <div className="flex items-center justify-between gap-2 border-b border-[#ece8f6] px-2 py-1 sm:px-3 sm:py-1">
@@ -213,7 +224,7 @@ export default function ChatPage() {
                 className="inline-flex items-center gap-2 rounded-2xl border border-[#ece8f6] bg-white px-2.5 py-2 text-[11px] font-semibold text-slate-700 transition hover:bg-[#f8faff] sm:px-3 sm:py-2 sm:text-xs lg:text-sm"
               >
                 <Settings2 className="h-4 w-4" />
-                <span className="hidden sm:inline">Configuración</span>
+                <span className="hidden sm:inline">Configuracion</span>
               </button>
             </div>
           </div>
@@ -277,7 +288,7 @@ export default function ChatPage() {
         />
       </Modal>
 
-      <Modal open={settingsOpen} title="Configuración" onClose={() => setSettingsOpen(false)} widthClass="max-w-2xl">
+      <Modal open={settingsOpen} title="Configuracion" onClose={() => setSettingsOpen(false)} widthClass="max-w-2xl">
         <ChatSettingsPanel
           role={role}
           settings={settings}

@@ -12,10 +12,12 @@ import { getRouteForRole } from './utils/roleRoutes'
 function AppRoutes() {
   const { role, loading, isAuthenticated } = useAuth()
 
+  // Mientras llega la sesion, mostramos una pantalla simple para evitar parpadeos.
   if (loading) {
     return <div className="flex h-screen items-center justify-center">Cargando...</div>
   }
 
+  // Si hay sesion pero no existe rol, mostramos un estado de recuperacion.
   if (isAuthenticated && !role) {
     return (
       <div className="flex h-screen items-center justify-center p-6 text-center">
@@ -29,6 +31,7 @@ function AppRoutes() {
 
   return (
     <Routes>
+      {/* Rutas publicas y privadas separadas por rol. */}
       <Route path="/login" element={<Login />} />
       <Route path="/" element={<Navigate to={getRouteForRole(role, isAuthenticated)} replace />} />
       <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />

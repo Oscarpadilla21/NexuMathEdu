@@ -2,7 +2,7 @@ import { SendHorizonal, WandSparkles } from 'lucide-react'
 import { useState } from 'react'
 
 const QUICK_PROMPTS = [
-  'Explícame el tema como si fuera mi primera vez.',
+  'ExplÃ­came el tema como si fuera mi primera vez.',
   'Dame un ejercicio resuelto paso a paso.',
   'Resume la idea principal en 3 puntos.',
 ]
@@ -11,6 +11,7 @@ export default function ChatComposer({ onSend, placeholder, disabled, sending })
   const [value, setValue] = useState('')
 
   const submitMessage = async (text) => {
+    // Tomamos el texto escrito o uno sugerido y evitamos enviar vacios.
     const content = String(text || value).trim()
     if (!content || disabled || sending) {
       return
@@ -22,6 +23,7 @@ export default function ChatComposer({ onSend, placeholder, disabled, sending })
 
   return (
     <div className="border-t border-[#e5e4e7] bg-white/95 p-4 backdrop-blur">
+      {/* Accesos rapidos para disparar prompts comunes sin escribirlos. */}
       <div className="mb-3 flex flex-wrap gap-2">
         {QUICK_PROMPTS.map((prompt) => (
           <button
@@ -44,6 +46,7 @@ export default function ChatComposer({ onSend, placeholder, disabled, sending })
         }}
         className="flex items-end gap-3 rounded-3xl border border-[#e5e4e7] bg-[#fafafa] p-3 shadow-sm"
       >
+        {/* Caja principal de texto para redactar el mensaje. */}
         <textarea
           value={value}
           onChange={(e) => setValue(e.target.value)}

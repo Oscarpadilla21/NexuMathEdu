@@ -13,6 +13,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true)
 
   async function fetchProfile(userRecord) {
+    // Primero intentamos leer el perfil desde la tabla; si falla, caemos a metadata.
     const fallbackRole = userRecord?.user_metadata?.role || userRecord?.app_metadata?.role || null
 
     try {
@@ -47,6 +48,7 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const initializeAuth = async () => {
+      // Resolvemos la sesion actual cuando la app arranca.
       try {
         const { data: { session } } = await supabase.auth.getSession()
 
@@ -64,6 +66,7 @@ export const AuthProvider = ({ children }) => {
 
     initializeAuth()
 
+    // Escuchamos cambios de autenticacion para mantener el estado sincronizado.
     const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
         setSession(session)
@@ -83,6 +86,13 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
+
+    if (data?.session?.user) {
+      setSession(data.session)
+      setUser(data.session.user)
+      await fetchProfile(data.session.user)
+    }
+
     return data
   }
 
@@ -94,6 +104,7 @@ export const AuthProvider = ({ children }) => {
   }
 
   const value = {
+    // Exponemos todo lo que el resto de la app necesita saber del usuario.
     user,
     profile,
     session,

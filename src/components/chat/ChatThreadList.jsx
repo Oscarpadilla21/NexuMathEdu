@@ -12,6 +12,7 @@ export default function ChatThreadList({
 }) {
   return (
     <section className="flex h-full flex-col rounded-3xl border border-[#e5e4e7] bg-white p-4 shadow-2xl">
+      {/* Cabecera: contexto del usuario y titulo de la vista. */}
       <div className="flex items-start justify-between gap-4 border-b border-[#ece8f6] pb-4">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#9d31ff]">Historial</p>
@@ -23,6 +24,7 @@ export default function ChatThreadList({
         </div>
       </div>
 
+      {/* Texto descriptivo del perfil o rol activo. */}
       <p className="mt-4 rounded-2xl border border-[#ece8f6] bg-[#f8faff] px-4 py-3 text-sm leading-6 text-slate-700">
         {profileText}
       </p>
@@ -36,6 +38,7 @@ export default function ChatThreadList({
         Nuevo chat
       </button>
 
+      {/* Lista de conversaciones; la actual queda resaltada. */}
       <div className="mt-4 flex-1 space-y-2 overflow-y-auto pr-1">
         {threads.length > 0 ? (
           threads.map((thread) => {
@@ -60,6 +63,7 @@ export default function ChatThreadList({
             )
           })
         ) : (
+          // Estado vacio cuando todavia no existe ningun hilo guardado.
           <div className="rounded-2xl border border-dashed border-[#e5e4e7] bg-[#fafafa] px-4 py-5 text-sm text-slate-500">
             Todavia no hay conversaciones guardadas.
           </div>

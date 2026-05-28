@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
-//conexion a supabase
+
+// Cliente unico de Supabase usado por toda la app en el navegador.
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 

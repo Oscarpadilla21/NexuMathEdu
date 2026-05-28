@@ -380,9 +380,10 @@ export default function AdminDashboard() {
             <div>
               <h2 className="text-lg font-semibold">Accesos rapidos</h2>
               <p className="text-sm text-gray-500">
-                El perfil y el chat de IA ahora viven en vistas dedicadas para mantener este panel enfocado en la gestion.
+                El perfil y el chat ahora viven en vistas dedicadas para mantener este panel enfocado en la gestion.
               </p>
             </div>
+            {/* Saltos directos a las pantallas que usan administradores con frecuencia. */}
             <div className="flex flex-wrap gap-3">
               <button
                 onClick={() => navigate('/perfil')}
@@ -394,7 +395,7 @@ export default function AdminDashboard() {
                 onClick={() => navigate('/chat')}
                 className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700"
               >
-                Ver chats IA
+                Ver chats
               </button>
             </div>
           </div>

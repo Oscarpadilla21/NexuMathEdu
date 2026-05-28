@@ -1,3 +1,4 @@
+// Perfiles visuales y de contenido para adaptar el chat segun el rol.
 const ROLE_PROFILES = {
   admin: {
     label: 'Administrador',
@@ -5,7 +6,7 @@ const ROLE_PROFILES = {
     border: 'border-[#9d31ff]/20',
     glow: 'shadow-[#9d31ff]/15',
     welcomeTitle: 'Modo administrador',
-    welcomeText: 'Usa el chat para soporte operativo, orientación de plataforma y respuestas accionables.',
+    welcomeText: 'Usa el chat para soporte operativo, orientacion de plataforma y respuestas accionables.',
     defaultFocus: 'gestion de plataforma',
     suggestedFocus: ['gestion de plataforma', 'soporte tecnico', 'reportes', 'analisis'],
   },
@@ -15,7 +16,7 @@ const ROLE_PROFILES = {
     border: 'border-[#9d31ff]/20',
     glow: 'shadow-[#9d31ff]/15',
     welcomeTitle: 'Modo profesor',
-    welcomeText: 'Pide planificación de clases, evaluaciones, actividades y explicaciones listas para el aula.',
+    welcomeText: 'Pide planificacion de clases, evaluaciones, actividades y explicaciones listas para el aula.',
     defaultFocus: 'plan de clase',
     suggestedFocus: ['plan de clase', 'actividades', 'evaluaciones', 'retroalimentacion'],
   },
@@ -25,12 +26,13 @@ const ROLE_PROFILES = {
     border: 'border-[#9d31ff]/20',
     glow: 'shadow-[#9d31ff]/15',
     welcomeTitle: 'Modo tutor',
-    welcomeText: 'Recibe explicaciones paso a paso, ejemplos y ejercicios para practicar matemáticas.',
+    welcomeText: 'Recibe explicaciones paso a paso, ejemplos y ejercicios para practicar matematicas.',
     defaultFocus: 'resolver ejercicios',
     suggestedFocus: ['resolver ejercicios', 'repasar teoria', 'preparar examen', 'ejemplos'],
   },
 }
 
+// Opciones reutilizables para el selector de tono y detalle.
 const DEFAULT_TONES = ['claro', 'cercano', 'conciso', 'riguroso']
 const DEFAULT_DETAIL_LEVELS = ['breve', 'medio', 'profundo']
 
@@ -49,6 +51,7 @@ export function getChatDetailLevels() {
 export function buildDefaultChatSettings(role) {
   const profile = getChatRoleProfile(role)
 
+  // Estado inicial que se usa al abrir el chat o al restablecer ajustes.
   return {
     tone: 'claro',
     detailLevel: 'medio',
@@ -59,7 +62,7 @@ export function buildDefaultChatSettings(role) {
 
 export function formatThreadLabel(thread) {
   if (!thread?.title) {
-    return 'Chat IA'
+    return 'Chat'
   }
 
   return thread.title

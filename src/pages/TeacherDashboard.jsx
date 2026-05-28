@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Search, Users, BookOpen, GraduationCap, ChevronRight } from 'lucide-react'
+import { Plus, Search, Users, BookOpen, GraduationCap, Pencil, Trash2, RefreshCw } from 'lucide-react'
 import DashboardHeader from '../components/layout/DashboardHeader'
 import UserModal from '../components/dashboard/UserModal'
 import CourseModal from '../components/dashboard/CourseModal'
+import EnrollmentModal from '../components/dashboard/EnrollmentModal'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { calculateFinalGrade } from '../utils/grades'
 
 const EMPTY_STUDENT = {
   email: '',
@@ -23,13 +25,26 @@ const EMPTY_COURSE = {
   student_ids: [],
 }
 
-function countStats(courses, students) {
-  const enrollments = courses.reduce((total, course) => total + (course.students?.length || 0), 0)
+const EMPTY_ENROLLMENT = {
+  course_id: '',
+  student_id: '',
+  student_name: '',
+  student_email: '',
+  note_1: '0',
+  note_2: '0',
+  note_3: '0',
+  final_grade: 0,
+}
 
+function countStats(courses, enrollments) {
   return {
     courses: courses.length,
-    students: students.length,
-    enrollments,
+    students: new Set(enrollments.map((enrollment) => enrollment.student_id)).size,
+    enrollments: enrollments.length,
+    average_pf:
+      enrollments.length > 0
+        ? enrollments.reduce((sum, enrollment) => sum + Number(enrollment.final_grade || 0), 0) / enrollments.length
+        : 0,
   }
 }
 
@@ -37,9 +52,10 @@ async function loadTeacherDashboardData({
   accessToken,
   setCourses,
   setStudents,
-  setSelectedCourseId,
+  setEnrollments,
   setLoading,
   setError,
+  clearError = true,
 }) {
   if (!accessToken) {
     setLoading(false)
@@ -47,7 +63,9 @@ async function loadTeacherDashboardData({
   }
 
   setLoading(true)
-  setError('')
+  if (clearError) {
+    setError('')
+  }
 
   try {
     const { data, error: functionError } = await supabase.functions.invoke('teacher-dashboard-data', {
@@ -62,7 +80,7 @@ async function loadTeacherDashboardData({
 
     setCourses(data?.courses || [])
     setStudents(data?.students || [])
-    setSelectedCourseId((current) => current || data?.courses?.[0]?.id || null)
+    setEnrollments(data?.enrollments || [])
   } catch (fetchError) {
     setError(fetchError?.message || 'No se pudo cargar la informacion del profesor.')
   } finally {
@@ -75,19 +93,24 @@ export default function TeacherDashboard() {
   const navigate = useNavigate()
   const [students, setStudents] = useState([])
   const [courses, setCourses] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [enrollments, setEnrollments] = useState([])
+  const [initialLoading, setInitialLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [savingStudent, setSavingStudent] = useState(false)
   const [savingCourse, setSavingCourse] = useState(false)
+  const [savingEnrollment, setSavingEnrollment] = useState(false)
   const [error, setError] = useState('')
   const [showStudentModal, setShowStudentModal] = useState(false)
   const [showCourseModal, setShowCourseModal] = useState(false)
-  const [selectedCourseId, setSelectedCourseId] = useState(null)
+  const [showEnrollmentModal, setShowEnrollmentModal] = useState(false)
   const [studentSearch, setStudentSearch] = useState('')
   const [courseSearch, setCourseSearch] = useState('')
+  const [enrollmentSearch, setEnrollmentSearch] = useState('')
   const [courseStudentSearch, setCourseStudentSearch] = useState('')
   const [newStudent, setNewStudent] = useState(EMPTY_STUDENT)
   const [courseForm, setCourseForm] = useState(EMPTY_COURSE)
   const [editingCourseId, setEditingCourseId] = useState(null)
+  const [editingEnrollment, setEditingEnrollment] = useState(null)
 
   const navItems = [
     { label: 'Inicio', to: '/teacher' },
@@ -95,26 +118,8 @@ export default function TeacherDashboard() {
     { label: 'Chat', to: '/chat' },
   ]
 
-  const selectedCourse = useMemo(
-    () => courses.find((course) => course.id === selectedCourseId) || null,
-    [courses, selectedCourseId]
-  )
-
-  const filteredStudents = useMemo(() => {
-    const query = studentSearch.trim().toLowerCase()
-
-    if (!query) return students
-
-    return students.filter((student) => {
-      const name = (student.full_name || '').toLowerCase()
-      const email = (student.email || '').toLowerCase()
-      return name.includes(query) || email.includes(query)
-    })
-  }, [studentSearch, students])
-
   const filteredCourses = useMemo(() => {
     const query = courseSearch.trim().toLowerCase()
-
     if (!query) return courses
 
     return courses.filter((course) => {
@@ -125,12 +130,55 @@ export default function TeacherDashboard() {
     })
   }, [courseSearch, courses])
 
-  const stats = useMemo(() => countStats(courses, students), [courses, students])
+  const filteredStudents = useMemo(() => {
+    const query = studentSearch.trim().toLowerCase()
+    if (!query) return students
 
-  const courseStudentIds = useMemo(() => {
-    if (!selectedCourse) return []
-    return (selectedCourse.students || []).map((student) => student.id)
-  }, [selectedCourse])
+    return students.filter((student) => {
+      const name = (student.full_name || '').toLowerCase()
+      const email = (student.email || '').toLowerCase()
+      return name.includes(query) || email.includes(query)
+    })
+  }, [studentSearch, students])
+
+  const filteredEnrollments = useMemo(() => {
+    const query = enrollmentSearch.trim().toLowerCase()
+    if (!query) return enrollments
+
+    return enrollments.filter((enrollment) => {
+      const student = `${enrollment.student_name || ''} ${enrollment.student_email || ''}`.toLowerCase()
+      const course = `${enrollment.course_title || ''} ${enrollment.course_subject || ''} ${enrollment.course_grade_level || ''}`.toLowerCase()
+      return student.includes(query) || course.includes(query)
+    })
+  }, [enrollmentSearch, enrollments])
+
+  const stats = useMemo(() => countStats(courses, enrollments), [courses, enrollments])
+
+  const studentPerformance = useMemo(() => {
+    const map = new Map()
+
+    enrollments.forEach((enrollment) => {
+      const current = map.get(enrollment.student_id) || {
+        student_id: enrollment.student_id,
+        student_name: enrollment.student_name,
+        student_email: enrollment.student_email,
+        average_pf: 0,
+        courses: 0,
+        notes_sum: 0,
+      }
+
+      current.notes_sum += Number(enrollment.final_grade || 0)
+      current.courses += 1
+      current.average_pf = current.notes_sum / current.courses
+      map.set(enrollment.student_id, current)
+    })
+
+    return [...map.values()].sort((a, b) => b.average_pf - a.average_pf)
+  }, [enrollments])
+
+  const performanceMax = useMemo(() => {
+    return studentPerformance[0]?.average_pf || 0
+  }, [studentPerformance])
 
   const courseStudentMap = useMemo(() => {
     const map = new Map()
@@ -140,14 +188,23 @@ export default function TeacherDashboard() {
     return map
   }, [courses])
 
+  const courseOptions = useMemo(
+    () =>
+      courses.map((course) => ({
+        id: course.id,
+        title: course.title,
+      })),
+    [courses]
+  )
+
   useEffect(() => {
     const timer = window.setTimeout(() => {
       void loadTeacherDashboardData({
         accessToken: session?.access_token,
         setCourses,
         setStudents,
-        setSelectedCourseId,
-        setLoading,
+        setEnrollments,
+        setLoading: setInitialLoading,
         setError,
       })
     }, 0)
@@ -160,9 +217,30 @@ export default function TeacherDashboard() {
     navigate('/login')
   }
 
+  const refreshData = async () => {
+    setRefreshing(true)
+    await loadTeacherDashboardData({
+      accessToken: session?.access_token,
+      setCourses,
+      setStudents,
+      setEnrollments,
+      setLoading: setRefreshing,
+      setError,
+      clearError: false,
+    })
+    setRefreshing(false)
+  }
+
   const openCreateStudent = () => {
     setNewStudent(EMPTY_STUDENT)
     setShowStudentModal(true)
+  }
+
+  const openCreateCourse = () => {
+    setEditingCourseId(null)
+    setCourseForm({ ...EMPTY_COURSE, teacher_id: profile?.id || '' })
+    setCourseStudentSearch('')
+    setShowCourseModal(true)
   }
 
   const openEditCourse = (course) => {
@@ -237,14 +315,7 @@ export default function TeacherDashboard() {
 
       setShowStudentModal(false)
       setNewStudent(EMPTY_STUDENT)
-      await loadTeacherDashboardData({
-        accessToken: session?.access_token,
-        setCourses,
-        setStudents,
-        setSelectedCourseId,
-        setLoading,
-        setError,
-      })
+      await refreshData()
     } catch (createError) {
       setError(createError?.message || 'No se pudo crear el alumno.')
     } finally {
@@ -252,24 +323,160 @@ export default function TeacherDashboard() {
     }
   }
 
-  const openSelectedCourseWithStudent = (studentId) => {
-    if (!selectedCourse) {
-      setError('Selecciona un curso antes de asignar alumnos.')
-      return
-    }
-
-    setEditingCourseId(selectedCourse.id)
-    setCourseForm({
-      title: selectedCourse.title || '',
-      description: selectedCourse.description || '',
-      subject: selectedCourse.subject || '',
-      grade_level: selectedCourse.grade_level || '',
-      teacher_id: selectedCourse.teacher_id || profile?.id || '',
-      is_active: selectedCourse.is_active ?? true,
-      student_ids: Array.from(new Set([...(courseStudentIds || []), studentId])),
+  const openEnrollmentEditor = (enrollment) => {
+    setEditingEnrollment({
+      ...enrollment,
+      original_course_id: enrollment.course_id,
+      note_1: enrollment.note_1 ?? '0',
+      note_2: enrollment.note_2 ?? '0',
+      note_3: enrollment.note_3 ?? '0',
     })
-    setCourseStudentSearch('')
-    setShowCourseModal(true)
+    setShowEnrollmentModal(true)
+  }
+
+  const updateEnrollmentField = (field, value) => {
+    setEditingEnrollment((current) => {
+      if (!current) return current
+
+      const next = { ...current, [field]: value }
+      if (field === 'note_1' || field === 'note_2' || field === 'note_3') {
+        next.final_grade = calculateFinalGrade(next.note_1, next.note_2, next.note_3)
+      }
+      return next
+    })
+  }
+
+  const handleSaveEnrollment = async (e) => {
+    e.preventDefault()
+    if (!editingEnrollment) return
+
+    setSavingEnrollment(true)
+    setError('')
+
+    try {
+      const previousCourseId = editingEnrollment.original_course_id || editingEnrollment.course_id
+
+      const payload = {
+        course_id: editingEnrollment.course_id,
+        student_id: editingEnrollment.student_id,
+        note_1: Number(editingEnrollment.note_1) || 0,
+        note_2: Number(editingEnrollment.note_2) || 0,
+        note_3: Number(editingEnrollment.note_3) || 0,
+        final_grade: calculateFinalGrade(editingEnrollment.note_1, editingEnrollment.note_2, editingEnrollment.note_3),
+        updated_by: profile?.id || null,
+      }
+
+      if (previousCourseId && previousCourseId !== editingEnrollment.course_id) {
+        await supabase.from('course_grades').delete().match({
+          course_id: previousCourseId,
+          student_id: editingEnrollment.student_id,
+        })
+        await supabase.from('enrollments').delete().match({
+          course_id: previousCourseId,
+          student_id: editingEnrollment.student_id,
+        })
+      }
+
+      const { error: gradeError } = await supabase.from('course_grades').upsert(payload, {
+        onConflict: 'course_id,student_id',
+      })
+
+      if (gradeError) {
+        throw gradeError
+      }
+
+      if (previousCourseId !== editingEnrollment.course_id) {
+        const { error: enrollmentError } = await supabase.from('enrollments').upsert(
+          {
+            course_id: editingEnrollment.course_id,
+            student_id: editingEnrollment.student_id,
+          },
+          { onConflict: 'course_id,student_id' }
+        )
+
+        if (enrollmentError) {
+          throw enrollmentError
+        }
+      }
+
+      setShowEnrollmentModal(false)
+      setEditingEnrollment(null)
+      await refreshData()
+    } catch (saveError) {
+      setError(saveError?.message || 'No se pudieron guardar las notas.')
+    } finally {
+      setSavingEnrollment(false)
+    }
+  }
+
+  const handleRemoveEnrollment = async () => {
+    if (!editingEnrollment) return
+
+    const confirmed = window.confirm(
+      `¿Quitar a ${editingEnrollment.student_name || editingEnrollment.student_email} del curso ${editingEnrollment.course_title}?`
+    )
+
+    if (!confirmed) return
+
+    setSavingEnrollment(true)
+    setError('')
+
+    try {
+      const { error: gradeDeleteError } = await supabase.from('course_grades').delete().match({
+        course_id: editingEnrollment.course_id,
+        student_id: editingEnrollment.student_id,
+      })
+      if (gradeDeleteError) throw gradeDeleteError
+
+      const { error: enrollmentDeleteError } = await supabase.from('enrollments').delete().match({
+        course_id: editingEnrollment.course_id,
+        student_id: editingEnrollment.student_id,
+      })
+      if (enrollmentDeleteError) throw enrollmentDeleteError
+
+      setShowEnrollmentModal(false)
+      setEditingEnrollment(null)
+      await refreshData()
+    } catch (removeError) {
+      setError(removeError?.message || 'No se pudo quitar al estudiante del curso.')
+    } finally {
+      setSavingEnrollment(false)
+    }
+  }
+
+  const removeEnrollmentRecord = async (targetEnrollment) => {
+    if (!targetEnrollment) return
+
+    const confirmed = window.confirm(
+      `¿Quitar a ${targetEnrollment.student_name || targetEnrollment.student_email} del curso ${targetEnrollment.course_title}?`
+    )
+
+    if (!confirmed) return
+
+    setSavingEnrollment(true)
+    setError('')
+
+    try {
+      const { error: gradeDeleteError } = await supabase.from('course_grades').delete().match({
+        course_id: targetEnrollment.course_id,
+        student_id: targetEnrollment.student_id,
+      })
+      if (gradeDeleteError) throw gradeDeleteError
+
+      const { error: enrollmentDeleteError } = await supabase.from('enrollments').delete().match({
+        course_id: targetEnrollment.course_id,
+        student_id: targetEnrollment.student_id,
+      })
+      if (enrollmentDeleteError) throw enrollmentDeleteError
+
+      setShowEnrollmentModal(false)
+      setEditingEnrollment(null)
+      await refreshData()
+    } catch (removeError) {
+      setError(removeError?.message || 'No se pudo quitar al estudiante del curso.')
+    } finally {
+      setSavingEnrollment(false)
+    }
   }
 
   const handleSaveCourse = async (e) => {
@@ -292,30 +499,17 @@ export default function TeacherDashboard() {
         : supabase.from('courses').insert([payload]).select('id').single()
 
       const { data, error: courseError } = await query
-      if (courseError) {
-        throw courseError
-      }
+      if (courseError) throw courseError
 
       const courseId = data?.id || editingCourseId
       const enrollmentError = await syncCourseEnrollments(courseId, courseForm.student_ids || [])
-      if (enrollmentError) {
-        throw enrollmentError
-      }
+      if (enrollmentError) throw enrollmentError
 
       setShowCourseModal(false)
       setEditingCourseId(null)
       setCourseForm(EMPTY_COURSE)
       setCourseStudentSearch('')
-
-      await loadTeacherDashboardData({
-        accessToken: session?.access_token,
-        setCourses,
-        setStudents,
-        setSelectedCourseId,
-        setLoading,
-        setError,
-      })
-      setSelectedCourseId(courseId)
+      await refreshData()
     } catch (saveError) {
       setError(saveError?.message || 'No se pudo guardar el curso.')
     } finally {
@@ -324,19 +518,12 @@ export default function TeacherDashboard() {
   }
 
   const handleRefresh = async () => {
-    await loadTeacherDashboardData({
-      accessToken: session?.access_token,
-      setCourses,
-      setStudents,
-      setSelectedCourseId,
-      setLoading,
-      setError,
-    })
+    await refreshData()
   }
 
-  if (loading) {
+  if (initialLoading) {
     return (
-      <div className="min-h-screen bg-[#f8faff]">
+      <div className="flex min-h-screen w-full flex-col bg-[#f8faff]">
         <DashboardHeader
           subtitle={profile?.full_name || profile?.email}
           userLabel={profile?.full_name || profile?.email || 'Profesor'}
@@ -372,11 +559,20 @@ export default function TeacherDashboard() {
               <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#9d31ff]">Profesor</p>
               <h1 className="mt-2 text-3xl font-semibold text-slate-900">Panel docente</h1>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-                Aqui puedes crear alumnos y revisar los cursos asignados, viendo solo los estudiantes vinculados a esos cursos.
+                Aquí puedes crear alumnos, revisar y editar tus cursos, y gestionar notas y asignaciones sin recargar la página.
               </p>
             </div>
 
             <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="inline-flex items-center gap-2 rounded-2xl border border-[#ece8f6] bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-[#f8faff] disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                {refreshing ? 'Actualizando...' : 'Refrescar'}
+              </button>
               <button
                 type="button"
                 onClick={openCreateStudent}
@@ -384,6 +580,14 @@ export default function TeacherDashboard() {
               >
                 <Plus className="h-4 w-4" />
                 Crear alumno
+              </button>
+              <button
+                type="button"
+                onClick={openCreateCourse}
+                className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-[#9d31ff] to-[#ff318c] px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:brightness-110"
+              >
+                <BookOpen className="h-4 w-4" />
+                Crear curso
               </button>
             </div>
           </div>
@@ -394,7 +598,7 @@ export default function TeacherDashboard() {
             </div>
           )}
 
-          <div className="grid gap-4 p-5 sm:p-6 md:grid-cols-3">
+          <div className="grid gap-4 p-5 sm:p-6 md:grid-cols-4">
             <div className="rounded-3xl border border-[#ece8f6] bg-[#f8faff] p-5">
               <div className="flex items-center justify-between">
                 <div>
@@ -420,7 +624,7 @@ export default function TeacherDashboard() {
             <div className="rounded-3xl border border-[#ece8f6] bg-[#f8faff] p-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-slate-500">Asignaciones</p>
+                  <p className="text-sm text-slate-500">Inscripciones</p>
                   <div className="mt-2 text-3xl font-bold text-slate-900">{stats.enrollments}</div>
                 </div>
                 <div className="rounded-2xl bg-slate-900/10 p-3 text-slate-900">
@@ -428,15 +632,69 @@ export default function TeacherDashboard() {
                 </div>
               </div>
             </div>
+            <div className="rounded-3xl border border-[#ece8f6] bg-[#f8faff] p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-500">PF promedio</p>
+                  <div className="mt-2 text-3xl font-bold text-emerald-600">{stats.average_pf.toFixed(2)}</div>
+                </div>
+                <div className="rounded-2xl bg-emerald-500/10 p-3 text-emerald-600">
+                  <GraduationCap className="h-5 w-5" />
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
-        <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+        <section className="overflow-hidden rounded-[2rem] border border-[#ece8f6] bg-white shadow-2xl">
+          <div className="flex flex-col gap-3 border-b border-[#ece8f6] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">Rendimiento</h2>
+              <p className="text-sm text-slate-500">Comparación de alumnos según el PF acumulado de sus cursos.</p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 p-5 sm:p-6 lg:grid-cols-2">
+            {studentPerformance.length > 0 ? (
+              studentPerformance.slice(0, 8).map((item, index) => {
+                const width = performanceMax > 0 ? Math.max((item.average_pf / performanceMax) * 100, 8) : 8
+
+                return (
+                  <div key={item.student_id} className="rounded-3xl border border-[#ece8f6] bg-[#fafafa] p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-xs uppercase tracking-[0.18em] text-slate-400">#{index + 1}</div>
+                        <h3 className="mt-1 text-sm font-semibold text-slate-900">{item.student_name}</h3>
+                        <p className="text-xs text-slate-500">{item.student_email}</p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-semibold text-emerald-700">{item.average_pf.toFixed(2)}</div>
+                        <div className="text-xs text-slate-400">{item.courses} curso(s)</div>
+                      </div>
+                    </div>
+                    <div className="mt-4 h-3 overflow-hidden rounded-full bg-white">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-[#9d31ff] to-[#ff318c]"
+                        style={{ width: `${width}%` }}
+                      />
+                    </div>
+                  </div>
+                )
+              })
+            ) : (
+              <div className="rounded-3xl border border-dashed border-[#ece8f6] bg-[#fafafa] p-5 text-sm text-slate-500 lg:col-span-2">
+                Aún no hay notas suficientes para comparar rendimiento.
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
           <div className="overflow-hidden rounded-[2rem] border border-[#ece8f6] bg-white shadow-2xl">
             <div className="flex flex-col gap-3 border-b border-[#ece8f6] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-slate-900">Cursos</h2>
-                <p className="text-sm text-slate-500">Revisa y edita tus cursos asignados.</p>
+                <p className="text-sm text-slate-500">Revisa y edita los cursos asignados a tu cuenta.</p>
               </div>
               <label className="flex items-center gap-2 rounded-2xl border border-[#ece8f6] bg-[#fafafa] px-3 py-2">
                 <Search className="h-4 w-4 text-slate-400" />
@@ -453,16 +711,9 @@ export default function TeacherDashboard() {
             <div className="divide-y divide-[#ece8f6]">
               {filteredCourses.length > 0 ? (
                 filteredCourses.map((course) => (
-                  <button
-                    key={course.id}
-                    type="button"
-                    onClick={() => setSelectedCourseId(course.id)}
-                    className={`w-full px-5 py-4 text-left transition hover:bg-[#f8faff] ${
-                      selectedCourseId === course.id ? 'bg-[#f8faff]' : ''
-                    }`}
-                  >
+                  <div key={course.id} className="px-5 py-4">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                      <div>
+                      <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <h3 className="text-base font-semibold text-slate-900">{course.title}</h3>
                           <span
@@ -477,16 +728,21 @@ export default function TeacherDashboard() {
                           {course.subject || 'Sin materia'} {course.grade_level ? ` • ${course.grade_level}` : ''}
                         </p>
                         <p className="mt-2 text-sm leading-6 text-slate-600">{course.description || 'Sin descripcion.'}</p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="rounded-2xl border border-[#ece8f6] bg-white px-4 py-3 text-center">
-                          <div className="text-lg font-bold text-[#9d31ff]">{course.student_count || 0}</div>
-                          <div className="text-[11px] uppercase tracking-[0.18em] text-slate-400">alumnos</div>
+                        <div className="mt-3 text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
+                          {course.student_count || 0} alumnos
                         </div>
-                        <ChevronRight className="h-5 w-5 text-slate-300" />
                       </div>
+
+                      <button
+                        type="button"
+                        onClick={() => openEditCourse(course)}
+                        className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-[#9d31ff] to-[#ff318c] px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:brightness-110"
+                      >
+                        <Pencil className="h-4 w-4" />
+                        Editar curso
+                      </button>
                     </div>
-                  </button>
+                  </div>
                 ))
               ) : (
                 <div className="px-5 py-10 text-sm text-slate-500">No hay cursos para mostrar.</div>
@@ -498,50 +754,76 @@ export default function TeacherDashboard() {
             <div className="flex flex-col gap-3 border-b border-[#ece8f6] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-slate-900">Alumnos visibles</h2>
-                <p className="text-sm text-slate-500">Solo se muestran los estudiantes de tus cursos asignados.</p>
+                <p className="text-sm text-slate-500">Edita notas, cambia el curso o quita a un alumno de una inscripción.</p>
               </div>
               <label className="flex items-center gap-2 rounded-2xl border border-[#ece8f6] bg-[#fafafa] px-3 py-2">
                 <Search className="h-4 w-4 text-slate-400" />
                 <input
                   type="search"
-                  value={studentSearch}
-                  onChange={(e) => setStudentSearch(e.target.value)}
-                  placeholder="Buscar alumno"
-                  className="w-40 bg-transparent text-sm outline-none placeholder:text-slate-400"
+                  value={enrollmentSearch}
+                  onChange={(e) => setEnrollmentSearch(e.target.value)}
+                  placeholder="Buscar alumno o curso"
+                  className="w-44 bg-transparent text-sm outline-none placeholder:text-slate-400"
                 />
               </label>
             </div>
 
-            <div className="max-h-[32rem] overflow-y-auto">
+            <div className="max-h-[34rem] overflow-y-auto">
               <table className="w-full">
                 <thead className="sticky top-0 bg-[#fafafa]">
                   <tr className="text-left text-xs uppercase tracking-[0.18em] text-slate-400">
-                    <th className="px-5 py-3 font-semibold">Nombre</th>
-                    <th className="px-5 py-3 font-semibold">Correo</th>
-                    <th className="px-5 py-3 font-semibold">Accion</th>
+                    <th className="px-5 py-3 font-semibold">Alumno</th>
+                    <th className="px-5 py-3 font-semibold">Curso</th>
+                    <th className="px-5 py-3 font-semibold">PF</th>
+                    <th className="px-5 py-3 font-semibold">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#ece8f6]">
-                  {filteredStudents.length > 0 ? (
-                    filteredStudents.map((student) => (
-                      <tr key={student.id}>
-                        <td className="px-5 py-4 text-sm font-medium text-slate-900">{student.full_name || 'Sin nombre'}</td>
-                        <td className="px-5 py-4 text-sm text-slate-600">{student.email}</td>
-                        <td className="px-5 py-4 text-sm">
-                          <button
-                            type="button"
-                            onClick={() => openSelectedCourseWithStudent(student.id)}
-                            className="rounded-full border border-[#ece8f6] bg-white px-3 py-2 text-xs font-semibold text-[#9d31ff] transition hover:bg-[#f8faff]"
-                          >
-                            Asignar a curso
-                          </button>
+                  {filteredEnrollments.length > 0 ? (
+                    filteredEnrollments.map((enrollment) => (
+                      <tr key={`${enrollment.course_id}-${enrollment.student_id}`}>
+                        <td className="px-5 py-4">
+                          <div className="font-medium text-slate-900">{enrollment.student_name}</div>
+                          <div className="text-sm text-slate-500">{enrollment.student_email}</div>
+                        </td>
+                        <td className="px-5 py-4">
+                          <div className="font-medium text-slate-900">{enrollment.course_title}</div>
+                          <div className="text-sm text-slate-500">
+                            {enrollment.course_subject || 'Sin materia'}
+                            {enrollment.course_grade_level ? ` • ${enrollment.course_grade_level}` : ''}
+                          </div>
+                        </td>
+                        <td className="px-5 py-4 text-sm font-semibold text-emerald-600">
+                          {Number(enrollment.final_grade || 0).toFixed(2)}
+                        </td>
+                        <td className="px-5 py-4">
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => openEnrollmentEditor(enrollment)}
+                              className="inline-flex items-center gap-2 rounded-full border border-[#ece8f6] bg-white px-3 py-2 text-xs font-semibold text-[#9d31ff] transition hover:bg-[#f8faff]"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                              Editar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                void removeEnrollmentRecord(enrollment)
+                              }}
+                              className="inline-flex items-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              Quitar
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td className="px-5 py-8 text-sm text-slate-500" colSpan={3}>
-                        No hay alumnos para mostrar.
+                      <td className="px-5 py-8 text-sm text-slate-500" colSpan={4}>
+                        No hay alumnos visibles para mostrar.
                       </td>
                     </tr>
                   )}
@@ -554,89 +836,71 @@ export default function TeacherDashboard() {
         <section className="overflow-hidden rounded-[2rem] border border-[#ece8f6] bg-white shadow-2xl">
           <div className="flex flex-col gap-3 border-b border-[#ece8f6] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">Curso seleccionado</h2>
-              <p className="text-sm text-slate-500">Aqui ves los alumnos asignados y puedes editar el curso.</p>
+              <h2 className="text-lg font-semibold text-slate-900">Alumnos guardados</h2>
+              <p className="text-sm text-slate-500">Los perfiles que ya están guardados en Supabase.</p>
             </div>
-            <button
-              type="button"
-              onClick={handleRefresh}
-              className="rounded-2xl border border-[#ece8f6] bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-[#f8faff]"
-            >
-              Refrescar
-            </button>
+            <label className="flex items-center gap-2 rounded-2xl border border-[#ece8f6] bg-[#fafafa] px-3 py-2">
+              <Search className="h-4 w-4 text-slate-400" />
+              <input
+                type="search"
+                value={studentSearch}
+                onChange={(e) => setStudentSearch(e.target.value)}
+                placeholder="Buscar alumno"
+                className="w-40 bg-transparent text-sm outline-none placeholder:text-slate-400"
+              />
+            </label>
           </div>
 
-          {selectedCourse ? (
-            <div className="grid gap-5 p-5 lg:grid-cols-[1.1fr_0.9fr]">
-              <div className="rounded-3xl border border-[#ece8f6] bg-[#fafafa] p-5">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#9d31ff]">Curso</p>
-                    <h3 className="mt-2 text-2xl font-semibold text-slate-900">{selectedCourse.title}</h3>
-                    <p className="mt-2 text-sm leading-6 text-slate-600">{selectedCourse.description || 'Sin descripcion.'}</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => openEditCourse(selectedCourse)}
-                    className="rounded-2xl bg-gradient-to-r from-[#9d31ff] to-[#ff318c] px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:brightness-110"
-                  >
-                    Editar curso
-                  </button>
-                </div>
-
-                <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-2xl border border-[#ece8f6] bg-white p-4">
-                    <div className="text-xs uppercase tracking-[0.18em] text-slate-400">Materia</div>
-                    <div className="mt-2 text-sm font-semibold text-slate-900">{selectedCourse.subject || '-'}</div>
-                  </div>
-                  <div className="rounded-2xl border border-[#ece8f6] bg-white p-4">
-                    <div className="text-xs uppercase tracking-[0.18em] text-slate-400">Grado</div>
-                    <div className="mt-2 text-sm font-semibold text-slate-900">{selectedCourse.grade_level || '-'}</div>
-                  </div>
-                  <div className="rounded-2xl border border-[#ece8f6] bg-white p-4">
-                    <div className="text-xs uppercase tracking-[0.18em] text-slate-400">Alumnos</div>
-                    <div className="mt-2 text-sm font-semibold text-slate-900">{selectedCourse.student_count || 0}</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-3xl border border-[#ece8f6] bg-white p-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#9d31ff]">Asignados</p>
-                    <h3 className="mt-2 text-lg font-semibold text-slate-900">Alumnos en este curso</h3>
-                  </div>
-                  <span className="rounded-full bg-[#f8faff] px-3 py-1 text-xs font-semibold text-[#9d31ff]">
-                    {courseStudentIds.length} seleccionados
-                  </span>
-                </div>
-
-                <div className="mt-4 max-h-72 space-y-2 overflow-y-auto pr-1">
-                  {selectedCourse.students?.length > 0 ? (
-                    selectedCourse.students.map((student) => (
-                      <div key={student.id} className="rounded-2xl border border-[#ece8f6] bg-[#fafafa] px-4 py-3">
-                        <div className="font-medium text-slate-900">{student.full_name || student.email}</div>
-                        <div className="text-sm text-slate-500">{student.email}</div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="rounded-2xl border border-dashed border-[#ece8f6] bg-[#fafafa] px-4 py-6 text-sm text-slate-500">
-                      Aun no hay alumnos asignados a este curso.
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="px-5 py-12 text-sm text-slate-500">Selecciona un curso para ver sus alumnos asignados.</div>
-          )}
+          <div className="max-h-[26rem] overflow-y-auto">
+            <table className="w-full">
+              <thead className="sticky top-0 bg-[#fafafa]">
+                <tr className="text-left text-xs uppercase tracking-[0.18em] text-slate-400">
+                  <th className="px-5 py-3 font-semibold">Nombre</th>
+                  <th className="px-5 py-3 font-semibold">Correo</th>
+                  <th className="px-5 py-3 font-semibold">Accion</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#ece8f6]">
+                {filteredStudents.length > 0 ? (
+                  filteredStudents.map((student) => (
+                    <tr key={student.id}>
+                      <td className="px-5 py-4 text-sm font-medium text-slate-900">{student.full_name || 'Sin nombre'}</td>
+                      <td className="px-5 py-4 text-sm text-slate-600">{student.email}</td>
+                      <td className="px-5 py-4 text-sm">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const enrollment = filteredEnrollments.find((item) => item.student_id === student.id)
+                            if (enrollment) {
+                              openEnrollmentEditor(enrollment)
+                            } else {
+                              setError('Ese estudiante no tiene una inscripción visible para editar.')
+                            }
+                          }}
+                          className="rounded-full border border-[#ece8f6] bg-white px-3 py-2 text-xs font-semibold text-[#9d31ff] transition hover:bg-[#f8faff]"
+                        >
+                          Ver inscripciones
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td className="px-5 py-8 text-sm text-slate-500" colSpan={3}>
+                      No hay alumnos para mostrar.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </section>
       </main>
 
       <UserModal
         open={showStudentModal}
         title="Crear alumno"
-        description="Se guardara en Supabase y aparecera en el listado de alumnos."
+        description="Se guardará en Supabase y aparecerá en el listado de alumnos."
         user={newStudent}
         onChange={(field, value) => setNewStudent((current) => ({ ...current, [field]: value }))}
         roleOptions={[{ value: 'student', label: 'Estudiante' }]}
@@ -648,8 +912,8 @@ export default function TeacherDashboard() {
 
       <CourseModal
         open={showCourseModal}
-        title="Editar curso"
-        description="Puedes ajustar la informacion del curso y cambiar sus alumnos asignados."
+        title={editingCourseId ? 'Editar curso' : 'Crear curso'}
+        description="Puedes ajustar la información del curso y cambiar sus alumnos asignados."
         course={courseForm}
         onChange={(field, value) => setCourseForm((current) => ({ ...current, [field]: value }))}
         showTeacherSelect={false}
@@ -665,10 +929,26 @@ export default function TeacherDashboard() {
           setCourseStudentSearch('')
         }}
         submitting={savingCourse}
-        submitLabel="Guardar curso"
+        submitLabel={editingCourseId ? 'Guardar cambios' : 'Guardar curso'}
         studentSectionTitle="Asignar alumnos"
         studentSectionDescription="Marca los alumnos que deben quedar inscritos en este curso."
-        emptyStudentsMessage="Aun no hay alumnos creados."
+        emptyStudentsMessage="Aún no hay alumnos creados."
+      />
+
+      <EnrollmentModal
+        open={showEnrollmentModal}
+        title="Notas e inscripción"
+        description="Edita P1, P2, P3 y mueve al estudiante de curso si es necesario."
+        enrollment={editingEnrollment}
+        courses={courseOptions}
+        onChange={updateEnrollmentField}
+        onSubmit={handleSaveEnrollment}
+        onRemove={handleRemoveEnrollment}
+        onClose={() => {
+          setShowEnrollmentModal(false)
+          setEditingEnrollment(null)
+        }}
+        submitting={savingEnrollment}
       />
     </div>
   )

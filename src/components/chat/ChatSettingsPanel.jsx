@@ -12,6 +12,7 @@ export default function ChatSettingsPanel({
 
   return (
     <section className="flex h-full flex-col rounded-3xl border border-[#e5e4e7] bg-white p-4 shadow-2xl">
+      {/* Encabezado con el titulo del panel y el contexto del rol activo. */}
       <div className="flex items-start justify-between gap-4 border-b border-[#ece8f6] pb-4">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#9d31ff]">Configuracion</p>
@@ -23,14 +24,16 @@ export default function ChatSettingsPanel({
         </div>
       </div>
 
+      {/* Texto breve que resume el perfil elegido para el chat. */}
       <div className="mt-4 rounded-2xl border border-[#ece8f6] bg-[#f8faff] px-4 py-4 text-sm text-slate-700">
         <div className="flex items-center gap-2 font-semibold">
           <Sparkles className="h-4 w-4" />
-          Perfil inteligente
+          Perfil del chat
         </div>
         <p className="mt-2 leading-6">{roleProfile.welcomeText}</p>
       </div>
 
+      {/* Controles que modifican como responde el chat. */}
       <div className="mt-4 space-y-4 overflow-y-auto pr-1">
         <label className="block">
           <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Tono</span>
@@ -89,9 +92,9 @@ export default function ChatSettingsPanel({
           </select>
         </label>
 
+        {/* Nota de ayuda para explicar el alcance de estos ajustes. */}
         <div className="rounded-2xl border border-[#e5e4e7] bg-[#fafafa] px-4 py-4 text-sm leading-6 text-slate-600">
-          Este panel ajusta el comportamiento del asistente sin exponer credenciales. La IA se consulta por la API y el
-          historial queda centralizado en Supabase desde el servidor.
+          Este panel ajusta tono, detalle, enfoque e idioma desde un solo lugar.
         </div>
       </div>
 
