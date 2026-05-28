@@ -86,7 +86,6 @@ export default function ChatPage() {
 
   const handleLogout = async () => {
     await logout()
-    navigate('/login')
   }
 
   const handleUpdateSettings = (partial) => {

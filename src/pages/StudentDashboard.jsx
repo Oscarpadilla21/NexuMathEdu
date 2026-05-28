@@ -58,13 +58,21 @@ async function loadStudentDashboardData({
 }
 
 export default function StudentDashboard() {
-  const { profile, session, logout } = useAuth()
+  const { profile, session, logout, isAuthenticated } = useAuth()
   const navigate = useNavigate()
   const [courses, setCourses] = useState([])
   const [enrollments, setEnrollments] = useState([])
   const [initialLoading, setInitialLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState('')
+
+  // Si la sesión se cierra, redirigimos automáticamente.
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login', { replace: true })
+    }
+  }, [isAuthenticated, navigate])
+
 
   const navItems = [
     { label: 'Home', to: '/student' },
@@ -88,7 +96,6 @@ export default function StudentDashboard() {
 
   const handleLogout = async () => {
     await logout()
-    navigate('/login')
   }
 
   const refreshData = async () => {

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import DashboardHeader from '../components/layout/DashboardHeader'
@@ -11,7 +11,7 @@ const roleLabels = {
 }
 
 export default function ProfilePage() {
-  const { profile, logout, role, login, updatePassword } = useAuth()
+  const { profile, logout, role, login, updatePassword, isAuthenticated } = useAuth()
   const navigate = useNavigate()
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -23,10 +23,16 @@ export default function ProfilePage() {
   const [statusType, setStatusType] = useState('')
   const [isChangingPassword, setIsChangingPassword] = useState(false)
 
-  // Cerramos sesion y volvemos al login.
+  // Si la sesión se cierra, redirigimos automáticamente.
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login', { replace: true })
+    }
+  }, [isAuthenticated, navigate])
+
+  // Cerramos sesion sin redirigir manualmente.
   const handleLogout = async () => {
     await logout()
-    navigate('/login')
   }
 
   const handlePasswordChange = async (event) => {

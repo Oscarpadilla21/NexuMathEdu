@@ -143,7 +143,6 @@ export default function AdminDashboard() {
 
   const handleLogout = async () => {
     await logout()
-    navigate('/login')
   }
 
   const openCreateCourse = () => {

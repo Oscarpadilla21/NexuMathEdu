@@ -99,10 +99,15 @@ export const AuthProvider = ({ children }) => {
   }
 
   const logout = async () => {
-    await supabase.auth.signOut()
-    setSession(null)
-    setUser(null)
-    setProfile(null)
+    try {
+      await supabase.auth.signOut()
+    } catch (error) {
+      console.error('Error during logout:', error)
+      // Limpiamos localmente incluso si hay error
+      setSession(null)
+      setUser(null)
+      setProfile(null)
+    }
   }
 
   const updatePassword = async (password) => {

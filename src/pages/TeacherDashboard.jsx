@@ -214,7 +214,6 @@ export default function TeacherDashboard() {
 
   const handleLogout = async () => {
     await logout()
-    navigate('/login')
   }
 
   const refreshData = async () => {
@@ -632,17 +631,6 @@ export default function TeacherDashboard() {
                 </div>
               </div>
             </div>
-            <div className="rounded-3xl border border-[#ece8f6] bg-[#f8faff] p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-500">PF promedio</p>
-                  <div className="mt-2 text-3xl font-bold text-emerald-600">{stats.average_pf.toFixed(2)}</div>
-                </div>
-                <div className="rounded-2xl bg-emerald-500/10 p-3 text-emerald-600">
-                  <GraduationCap className="h-5 w-5" />
-                </div>
-              </div>
-            </div>
           </div>
         </section>
 
@@ -900,7 +888,7 @@ export default function TeacherDashboard() {
       <UserModal
         open={showStudentModal}
         title="Crear alumno"
-        description="Se guardará en Supabase y aparecerá en el listado de alumnos."
+        description="Se guardará y aparecerá en el listado de alumnos."
         user={newStudent}
         onChange={(field, value) => setNewStudent((current) => ({ ...current, [field]: value }))}
         roleOptions={[{ value: 'student', label: 'Estudiante' }]}
