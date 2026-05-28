@@ -10,7 +10,16 @@ import ChatPage from './pages/ChatPage'
 import { getRouteForRole } from './utils/roleRoutes'
 
 function AppRoutes() {
-  const { role, isAuthenticated } = useAuth()
+  const { role, loading, isAuthenticated } = useAuth()
+
+  // Mostrar una pantalla minimal solo durante la carga inicial.
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-white">
+        <p className="text-gray-600">Cargando...</p>
+      </div>
+    )
+  }
 
   return (
     <Routes>

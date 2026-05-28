@@ -15,21 +15,12 @@ const Login = () => {
   const { login, isAuthenticated, role, loading: authLoading } = useAuth();
 
   useEffect(() => {
-    if (isAuthenticated && !authLoading && role) {
+    if (isAuthenticated && role) {
       navigate(getRouteForRole(role, isAuthenticated), { replace: true });
     }
-  }, [authLoading, isAuthenticated, navigate, role]);
+  }, [isAuthenticated, navigate, role]);
 
-  if (authLoading && isAuthenticated) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-[#f8faff]">
-        <div className="rounded-3xl border border-slate-200 bg-white px-10 py-8 shadow-xl text-center">
-          <p className="text-lg font-semibold text-slate-900">Cargando sesión...</p>
-          <p className="mt-2 text-sm text-slate-500">Un momento mientras verificamos tu cuenta.</p>
-        </div>
-      </div>
-    );
-  }
+  // No mostrar pantalla de carga aquí; si está autenticado, se redirige automáticamente.
 
   const handleSubmit = async (e) => {
     e.preventDefault();

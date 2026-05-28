@@ -44,12 +44,14 @@ export const AuthProvider = ({ children }) => {
   }
 
   useEffect(() => {
+    let isMounted = true
+
     const initializeAuth = async () => {
       // Resolvemos la sesion actual cuando la app arranca.
-      setLoading(true)
-
       try {
         const { data: { session } } = await supabase.auth.getSession()
+
+        if (!isMounted) return
 
         if (session?.user) {
           setSession(session)
@@ -59,7 +61,7 @@ export const AuthProvider = ({ children }) => {
       } catch (error) {
         console.error('Failed to initialize auth session', error)
       } finally {
-        setLoading(false)
+        if (isMounted) setLoading(false)
       }
     }
 
@@ -67,8 +69,9 @@ export const AuthProvider = ({ children }) => {
 
     // Escuchamos cambios de autenticacion para mantener el estado sincronizado.
     const handleAuthChange = async (event, session) => {
+      if (!isMounted) return
+
       if (session?.user) {
-        setLoading(true)
         setSession(session)
         setUser(session.user)
         await fetchProfile(session.user)
@@ -77,12 +80,14 @@ export const AuthProvider = ({ children }) => {
         setUser(null)
         setProfile(null)
       }
-      setLoading(false)
     }
 
     const { data: listener } = supabase.auth.onAuthStateChange(handleAuthChange)
 
-    return () => listener?.subscription.unsubscribe()
+    return () => {
+      isMounted = false
+      listener?.subscription.unsubscribe()
+    }
   }, [])
 
   const login = async (email, password) => {
