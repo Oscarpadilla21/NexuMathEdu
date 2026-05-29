@@ -48,6 +48,8 @@ export const AuthProvider = ({ children }) => {
 
     const initializeAuth = async () => {
       // Resolvemos la sesion actual cuando la app arranca.
+      if (isMounted) setLoading(true)
+
       try {
         const { data: { session } } = await supabase.auth.getSession()
 
@@ -71,14 +73,20 @@ export const AuthProvider = ({ children }) => {
     const handleAuthChange = async (event, session) => {
       if (!isMounted) return
 
-      if (session?.user) {
-        setSession(session)
-        setUser(session.user)
-        await fetchProfile(session.user)
-      } else {
-        setSession(null)
-        setUser(null)
-        setProfile(null)
+      setLoading(true)
+
+      try {
+        if (session?.user) {
+          setSession(session)
+          setUser(session.user)
+          await fetchProfile(session.user)
+        } else {
+          setSession(null)
+          setUser(null)
+          setProfile(null)
+        }
+      } finally {
+        if (isMounted) setLoading(false)
       }
     }
 
