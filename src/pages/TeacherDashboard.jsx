@@ -5,9 +5,11 @@ import DashboardHeader from '../components/layout/DashboardHeader'
 import UserModal from '../components/dashboard/UserModal'
 import CourseModal from '../components/dashboard/CourseModal'
 import EnrollmentModal from '../components/dashboard/EnrollmentModal'
+import CoursePerformanceSection from '../components/dashboard/CoursePerformanceSection'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { calculateFinalGrade } from '../utils/grades'
+import { withTimeout } from '../utils/withTimeout'
 
 const EMPTY_STUDENT = {
   email: '',
@@ -68,11 +70,15 @@ async function loadTeacherDashboardData({
   }
 
   try {
-    const { data, error: functionError } = await supabase.functions.invoke('teacher-dashboard-data', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    })
+    const { data, error: functionError } = await withTimeout(
+      supabase.functions.invoke('teacher-dashboard-data', {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }),
+      10000,
+      'Teacher dashboard data request timed out'
+    )
 
     if (functionError) {
       throw functionError
@@ -154,32 +160,6 @@ export default function TeacherDashboard() {
 
   const stats = useMemo(() => countStats(courses, enrollments), [courses, enrollments])
 
-  const studentPerformance = useMemo(() => {
-    const map = new Map()
-
-    enrollments.forEach((enrollment) => {
-      const current = map.get(enrollment.student_id) || {
-        student_id: enrollment.student_id,
-        student_name: enrollment.student_name,
-        student_email: enrollment.student_email,
-        average_pf: 0,
-        courses: 0,
-        notes_sum: 0,
-      }
-
-      current.notes_sum += Number(enrollment.final_grade || 0)
-      current.courses += 1
-      current.average_pf = current.notes_sum / current.courses
-      map.set(enrollment.student_id, current)
-    })
-
-    return [...map.values()].sort((a, b) => b.average_pf - a.average_pf)
-  }, [enrollments])
-
-  const performanceMax = useMemo(() => {
-    return studentPerformance[0]?.average_pf || 0
-  }, [studentPerformance])
-
   const courseStudentMap = useMemo(() => {
     const map = new Map()
     courses.forEach((course) => {
@@ -198,6 +178,11 @@ export default function TeacherDashboard() {
   )
 
   useEffect(() => {
+    const fallbackTimer = window.setTimeout(() => {
+      setError((current) => current || 'La carga inicial del panel docente tardó demasiado. Mostrando la vista disponible.')
+      setInitialLoading(false)
+    }, 12000)
+
     const timer = window.setTimeout(() => {
       void loadTeacherDashboardData({
         accessToken: session?.access_token,
@@ -209,7 +194,10 @@ export default function TeacherDashboard() {
       })
     }, 0)
 
-    return () => window.clearTimeout(timer)
+    return () => {
+      window.clearTimeout(timer)
+      window.clearTimeout(fallbackTimer)
+    }
   }, [session?.access_token])
 
   const handleLogout = async () => {
@@ -552,131 +540,6 @@ export default function TeacherDashboard() {
       />
 
       <main className="flex w-full flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-        <section className="overflow-hidden rounded-[2rem] border border-[#ece8f6] bg-white shadow-2xl">
-          <div className="flex flex-col gap-4 border-b border-[#ece8f6] px-5 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#9d31ff]">Profesor</p>
-              <h1 className="mt-2 text-3xl font-semibold text-slate-900">Panel docente</h1>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-                Aquí puedes crear alumnos, revisar y editar tus cursos, y gestionar notas y asignaciones sin recargar la página.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className="inline-flex items-center gap-2 rounded-2xl border border-[#ece8f6] bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-[#f8faff] disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-                {refreshing ? 'Actualizando...' : 'Refrescar'}
-              </button>
-              <button
-                type="button"
-                onClick={openCreateStudent}
-                className="inline-flex items-center gap-2 rounded-2xl border border-[#ece8f6] bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-[#f8faff]"
-              >
-                <Plus className="h-4 w-4" />
-                Crear alumno
-              </button>
-              <button
-                type="button"
-                onClick={openCreateCourse}
-                className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-[#9d31ff] to-[#ff318c] px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:brightness-110"
-              >
-                <BookOpen className="h-4 w-4" />
-                Crear curso
-              </button>
-            </div>
-          </div>
-
-          {error && (
-            <div className="mx-5 mt-5 rounded-2xl border border-[#ffd4e7] bg-[#fff5fb] px-4 py-3 text-sm text-[#9d31ff] sm:mx-6">
-              {error}
-            </div>
-          )}
-
-          <div className="grid gap-4 p-5 sm:p-6 md:grid-cols-4">
-            <div className="rounded-3xl border border-[#ece8f6] bg-[#f8faff] p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-500">Cursos</p>
-                  <div className="mt-2 text-3xl font-bold text-[#9d31ff]">{stats.courses}</div>
-                </div>
-                <div className="rounded-2xl bg-[#9d31ff]/10 p-3 text-[#9d31ff]">
-                  <BookOpen className="h-5 w-5" />
-                </div>
-              </div>
-            </div>
-            <div className="rounded-3xl border border-[#ece8f6] bg-[#f8faff] p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-500">Alumnos</p>
-                  <div className="mt-2 text-3xl font-bold text-[#ff318c]">{stats.students}</div>
-                </div>
-                <div className="rounded-2xl bg-[#ff318c]/10 p-3 text-[#ff318c]">
-                  <Users className="h-5 w-5" />
-                </div>
-              </div>
-            </div>
-            <div className="rounded-3xl border border-[#ece8f6] bg-[#f8faff] p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-500">Inscripciones</p>
-                  <div className="mt-2 text-3xl font-bold text-slate-900">{stats.enrollments}</div>
-                </div>
-                <div className="rounded-2xl bg-slate-900/10 p-3 text-slate-900">
-                  <GraduationCap className="h-5 w-5" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="overflow-hidden rounded-[2rem] border border-[#ece8f6] bg-white shadow-2xl">
-          <div className="flex flex-col gap-3 border-b border-[#ece8f6] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-900">Rendimiento</h2>
-              <p className="text-sm text-slate-500">Comparación de alumnos según el PF acumulado de sus cursos.</p>
-            </div>
-          </div>
-
-          <div className="grid gap-4 p-5 sm:p-6 lg:grid-cols-2">
-            {studentPerformance.length > 0 ? (
-              studentPerformance.slice(0, 8).map((item, index) => {
-                const width = performanceMax > 0 ? Math.max((item.average_pf / performanceMax) * 100, 8) : 8
-
-                return (
-                  <div key={item.student_id} className="rounded-3xl border border-[#ece8f6] bg-[#fafafa] p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="text-xs uppercase tracking-[0.18em] text-slate-400">#{index + 1}</div>
-                        <h3 className="mt-1 text-sm font-semibold text-slate-900">{item.student_name}</h3>
-                        <p className="text-xs text-slate-500">{item.student_email}</p>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm font-semibold text-emerald-700">{item.average_pf.toFixed(2)}</div>
-                        <div className="text-xs text-slate-400">{item.courses} curso(s)</div>
-                      </div>
-                    </div>
-                    <div className="mt-4 h-3 overflow-hidden rounded-full bg-white">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-[#9d31ff] to-[#ff318c]"
-                        style={{ width: `${width}%` }}
-                      />
-                    </div>
-                  </div>
-                )
-              })
-            ) : (
-              <div className="rounded-3xl border border-dashed border-[#ece8f6] bg-[#fafafa] p-5 text-sm text-slate-500 lg:col-span-2">
-                Aún no hay notas suficientes para comparar rendimiento.
-              </div>
-            )}
-          </div>
-        </section>
-
         <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
           <div className="overflow-hidden rounded-[2rem] border border-[#ece8f6] bg-white shadow-2xl">
             <div className="flex flex-col gap-3 border-b border-[#ece8f6] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
@@ -820,6 +683,14 @@ export default function TeacherDashboard() {
             </div>
           </div>
         </section>
+
+        <CoursePerformanceSection
+          courses={courses}
+          enrollments={enrollments}
+          students={students}
+          scopeLabel="Vista del profesor"
+          emptyMessage="Todavia no hay cursos con datos suficientes para comparar rendimiento."
+        />
 
         <section className="overflow-hidden rounded-[2rem] border border-[#ece8f6] bg-white shadow-2xl">
           <div className="flex flex-col gap-3 border-b border-[#ece8f6] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">

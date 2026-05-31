@@ -17,10 +17,35 @@ const Login = () => {
   useEffect(() => {
     if (isAuthenticated && role) {
       navigate(getRouteForRole(role, isAuthenticated), { replace: true });
+      return;
     }
-  }, [isAuthenticated, navigate, role]);
+
+    if (isAuthenticated && !authLoading) {
+      navigate('/perfil', { replace: true });
+    }
+  }, [authLoading, isAuthenticated, navigate, role]);
 
   // No mostrar pantalla de carga aquí; si está autenticado, se redirige automáticamente.
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-[#f8faff]">
+        <div className="rounded-3xl border border-white/20 bg-white px-6 py-5 text-sm text-slate-600 shadow-2xl">
+          Verificando sesion...
+        </div>
+      </div>
+    );
+  }
+
+  if (isAuthenticated) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-[#f8faff]">
+        <div className="rounded-3xl border border-white/20 bg-white px-6 py-5 text-sm text-slate-600 shadow-2xl">
+          Redirigiendo...
+        </div>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();

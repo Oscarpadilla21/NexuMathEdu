@@ -1,3 +1,5 @@
+import MarkdownContent from './MarkdownContent'
+
 export default function ChatMessageBubble({ message, isUser, accentClass }) {
   // Convertimos la hora de creacion en una marca legible para la burbuja.
   const time = message?.created_at ? new Date(message.created_at).toLocaleTimeString('es-CO', {
@@ -15,7 +17,7 @@ export default function ChatMessageBubble({ message, isUser, accentClass }) {
             : 'border border-[#e5e4e7] bg-white text-slate-800'
         }`}
       >
-        <div className="whitespace-pre-wrap break-words text-[13px] leading-5 sm:text-sm">{message?.content}</div>
+        <MarkdownContent content={message?.content} tone={isUser ? 'dark' : 'light'} />
         <div className={`mt-1 text-[10px] ${isUser ? 'text-white/75' : 'text-slate-400'}`}>{time}</div>
       </div>
     </article>

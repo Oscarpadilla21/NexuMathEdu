@@ -10,5 +10,5 @@ export const getRouteForRole = (role, isAuthenticated = false) => {
     return ROLE_ROUTES[role]
   }
 
-  return isAuthenticated ? '/login' : '/login'
+  return isAuthenticated ? '/perfil' : '/login'
 }

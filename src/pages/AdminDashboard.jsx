@@ -5,6 +5,8 @@ import { supabase } from '../lib/supabase'
 import DashboardHeader from '../components/layout/DashboardHeader'
 import UserModal from '../components/dashboard/UserModal'
 import CourseModal from '../components/dashboard/CourseModal'
+import CoursePerformanceSection from '../components/dashboard/CoursePerformanceSection'
+import { withTimeout } from '../utils/withTimeout'
 
 const EMPTY_USER = { email: '', full_name: '', role: 'student', password: '' }
 const EMPTY_COURSE = {
@@ -22,6 +24,7 @@ export default function AdminDashboard() {
   const navigate = useNavigate()
   const [users, setUsers] = useState([])
   const [courses, setCourses] = useState([])
+  const [courseGrades, setCourseGrades] = useState([])
   const [stats, setStats] = useState({ users: 0, teachers: 0, students: 0, courses: 0 })
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -78,17 +81,20 @@ export default function AdminDashboard() {
         { data: coursesData },
         { data: profileRows },
         { data: enrollmentsData },
+        { data: gradesData },
       ] = await Promise.all([
-        supabase.functions.invoke('list-users'),
-        supabase.from('courses').select('*').order('created_at', { ascending: false }),
-        supabase.from('profiles').select('*').order('created_at', { ascending: false }),
-        supabase.from('enrollments').select('course_id, student_id, enrolled_at').order('enrolled_at', { ascending: false }),
+        withTimeout(supabase.functions.invoke('list-users'), 10000, 'User list request timed out'),
+        withTimeout(supabase.from('courses').select('*').order('created_at', { ascending: false }), 10000, 'Courses request timed out'),
+        withTimeout(supabase.from('profiles').select('*').order('created_at', { ascending: false }), 10000, 'Profiles request timed out'),
+        withTimeout(supabase.from('enrollments').select('course_id, student_id, enrolled_at').order('enrolled_at', { ascending: false }), 10000, 'Enrollments request timed out'),
+        withTimeout(supabase.from('course_grades').select('course_id, student_id, note_1, note_2, note_3, final_grade, updated_at').order('updated_at', { ascending: false }), 10000, 'Course grades request timed out'),
       ])
 
       const authUsers = usersError ? [] : usersResponse?.users || []
       const profileList = profileRows || []
       const courseList = coursesData || []
       const enrollmentList = enrollmentsData || []
+      const gradeList = gradesData || []
 
       const profileMap = new Map(profileList.map((user) => [user.id, user]))
 
@@ -114,6 +120,7 @@ export default function AdminDashboard() {
 
       setUsers(mergedUsers)
       setCourses(courseList)
+      setCourseGrades(gradeList)
       setEnrollments(enrollmentList)
       setStats({
         users: mergedUsers.length,
@@ -134,11 +141,21 @@ export default function AdminDashboard() {
   }
 
   useEffect(() => {
+    const fallbackTimer = window.setTimeout(() => {
+      setLoadError((current) => current || 'La carga inicial del panel administrativo tardó demasiado. Mostrando la vista disponible.')
+      setLoading(false)
+    }, 12000)
+
     const timer = window.setTimeout(() => {
-      void fetchData()
+      void fetchData().finally(() => {
+        window.clearTimeout(fallbackTimer)
+      })
     }, 0)
 
-    return () => window.clearTimeout(timer)
+    return () => {
+      window.clearTimeout(timer)
+      window.clearTimeout(fallbackTimer)
+    }
   }, [])
 
   const handleLogout = async () => {
@@ -418,6 +435,15 @@ export default function AdminDashboard() {
             <div className="text-gray-600">Cursos</div>
           </div>
         </section>
+
+        <CoursePerformanceSection
+          courses={courses}
+          enrollments={enrollments}
+          students={studentUsers}
+          courseGrades={courseGrades}
+          scopeLabel="Vista global del administrador"
+          emptyMessage="Todavía no hay cursos con datos suficientes para comparar rendimiento."
+        />
 
         <section className="overflow-hidden rounded-lg bg-white shadow">
           <div className="flex flex-col gap-3 border-b px-6 py-4 sm:flex-row sm:items-center sm:justify-between">

@@ -11,7 +11,7 @@ const roleLabels = {
 }
 
 export default function ProfilePage() {
-  const { profile, logout, role, login, updatePassword, isAuthenticated } = useAuth()
+  const { profile, user, logout, role, login, updatePassword, isAuthenticated } = useAuth()
   const navigate = useNavigate()
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -86,25 +86,28 @@ export default function ProfilePage() {
 
   // Mostramos iniciales a partir del nombre o correo para tener un avatar simple.
   const initials = useMemo(() => {
-    const name = profile?.full_name || profile?.email || ''
+    const name = profile?.full_name || profile?.email || user?.user_metadata?.full_name || user?.email || ''
     return name
       .split(' ')
       .filter(Boolean)
       .slice(0, 2)
       .map((part) => part[0]?.toUpperCase())
       .join('')
-  }, [profile?.email, profile?.full_name])
+  }, [profile?.email, profile?.full_name, user?.email, user?.user_metadata?.full_name])
 
-  const roleLabel = roleLabels[role] || 'Usuario'
+  const resolvedEmail = profile?.email || user?.email || 'Sin correo'
+  const resolvedName = profile?.full_name || user?.user_metadata?.full_name || resolvedEmail
+  const resolvedRole = role || user?.user_metadata?.role || user?.app_metadata?.role || null
+  const roleLabel = roleLabels[resolvedRole] || 'Usuario'
 
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Cabecera compartida con navegacion a las areas principales. */}
       <DashboardHeader
-        subtitle={profile?.full_name || profile?.email}
+        subtitle={resolvedName}
         userLabel={roleLabel}
         navItems={[
-          { label: 'Inicio', to: `/${role || 'login'}` },
+          { label: 'Inicio', to: `/${resolvedRole || 'login'}` },
           { label: 'Mi perfil', to: '/perfil' },
           { label: 'Chat', to: '/chat' },
         ]}
@@ -130,8 +133,8 @@ export default function ProfilePage() {
                   {initials || 'NA'}
                 </div>
                 <div>
-                  <h2 className="text-xl font-semibold text-slate-900">{profile?.full_name || 'Sin nombre'}</h2>
-                  <p className="text-sm text-slate-500">{profile?.email}</p>
+                  <h2 className="text-xl font-semibold text-slate-900">{resolvedName}</h2>
+                  <p className="text-sm text-slate-500">{resolvedEmail}</p>
                 </div>
               </div>
 
@@ -146,12 +149,14 @@ export default function ProfilePage() {
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-white p-4">
                   <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">ID de usuario</dt>
-                  <dd className="mt-2 break-all text-sm font-medium text-slate-700">{profile?.id || 'No disponible'}</dd>
+                  <dd className="mt-2 break-all text-sm font-medium text-slate-700">{profile?.id || user?.id || 'No disponible'}</dd>
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-white p-4">
                   <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Desde</dt>
                   <dd className="mt-2 text-sm font-medium text-slate-700">
-                    {profile?.created_at ? new Date(profile.created_at).toLocaleDateString('es-CO') : 'Sin dato'}
+                    {profile?.created_at || user?.created_at
+                      ? new Date(profile?.created_at || user?.created_at).toLocaleDateString('es-CO')
+                      : 'Sin dato'}
                   </dd>
                 </div>
               </dl>
@@ -169,7 +174,7 @@ export default function ProfilePage() {
                     Abrir chat
                   </button>
                   <button
-                    onClick={() => navigate(`/${role || 'login'}`)}
+                    onClick={() => navigate(`/${resolvedRole || 'login'}`)}
                     className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                   >
                     Volver al inicio

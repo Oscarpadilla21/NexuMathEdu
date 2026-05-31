@@ -5,6 +5,7 @@ import DashboardHeader from '../components/layout/DashboardHeader'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { calculateFinalGrade } from '../utils/grades'
+import { withTimeout } from '../utils/withTimeout'
 
 async function loadStudentDashboardData({
   accessToken,
@@ -25,11 +26,15 @@ async function loadStudentDashboardData({
   }
 
   try {
-    const { data, error: functionError } = await supabase.functions.invoke('student-dashboard-data', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    })
+    const { data, error: functionError } = await withTimeout(
+      supabase.functions.invoke('student-dashboard-data', {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }),
+      10000,
+      'Student dashboard data request timed out'
+    )
 
     if (functionError) {
       console.error('Function error:', functionError)
@@ -81,6 +86,11 @@ export default function StudentDashboard() {
   ]
 
   useEffect(() => {
+    const fallbackTimer = window.setTimeout(() => {
+      setError((current) => current || 'La carga inicial del tablero tardó demasiado. Mostrando la vista disponible.')
+      setInitialLoading(false)
+    }, 12000)
+
     const timer = window.setTimeout(() => {
       void loadStudentDashboardData({
         accessToken: session?.access_token,
@@ -91,7 +101,10 @@ export default function StudentDashboard() {
       })
     }, 0)
 
-    return () => window.clearTimeout(timer)
+    return () => {
+      window.clearTimeout(timer)
+      window.clearTimeout(fallbackTimer)
+    }
   }, [session?.access_token])
 
   const handleLogout = async () => {
