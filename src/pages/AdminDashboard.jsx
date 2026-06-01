@@ -398,15 +398,27 @@ export default function AdminDashboard() {
     }
   }
 
-  const handleChangeRole = async (userId, newRole) => {
+  const handleChangeRole = async (userId, userEmail, userFullName, newRole) => {
     if (newRole === 'admin') {
       alert('Admin role cannot be assigned from the panel')
       return
     }
 
-    await supabase.from('profiles').update({ role: newRole }).eq('id', userId)
-    alert('Role updated')
-    await fetchData()
+    const { error } = await supabase.functions.invoke('update-user', {
+      body: {
+        id: userId,
+        email: userEmail,
+        full_name: userFullName,
+        role: newRole,
+      },
+    })
+
+    if (error) {
+      alert(`Error al actualizar rol: ${error.message}`)
+    } else {
+      alert('Role updated')
+      await fetchData()
+    }
   }
 
   const handleEditUser = (user) => {
@@ -433,8 +445,17 @@ export default function AdminDashboard() {
     setUserActionLoading(true)
 
     try {
+      if (!editingUser.email) {
+        alert('El usuario debe tener un correo para guardar el perfil.')
+        setUserActionLoading(false)
+        return
+      }
+
       const updatePayload = {
+        id: editingUserId,
+        email: editingUser.email,
         full_name: editingUser.full_name,
+        role: editingUser.role,
       }
 
       if (editingUser.role === 'student') {
@@ -454,7 +475,9 @@ export default function AdminDashboard() {
           : []
       }
 
-      const { error } = await supabase.from('profiles').update(updatePayload).eq('id', editingUserId)
+      const { error } = await supabase.functions.invoke('update-user', {
+        body: updatePayload,
+      })
 
       if (error) {
         alert(`Error al actualizar usuario: ${error.message}`)
@@ -685,7 +708,7 @@ export default function AdminDashboard() {
                         ) : (
                           <select
                             value={user.role}
-                            onChange={(e) => handleChangeRole(user.id, e.target.value)}
+                            onChange={(e) => handleChangeRole(user.id, user.email, user.full_name, e.target.value)}
                             className="rounded border px-2 py-1 text-sm"
                           >
                             <option value="student">Estudiante</option>
