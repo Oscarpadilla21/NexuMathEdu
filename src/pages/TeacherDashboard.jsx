@@ -15,6 +15,8 @@ const EMPTY_STUDENT = {
   email: '',
   full_name: '',
   password: '',
+  role: 'student',
+  grade_level: '',
 }
 
 const EMPTY_COURSE = {
@@ -293,6 +295,7 @@ export default function TeacherDashboard() {
           password: newStudent.password,
           full_name: newStudent.full_name,
           role: 'student',
+          grade_level: newStudent.grade_level,
         },
       })
 
@@ -696,18 +699,27 @@ export default function TeacherDashboard() {
           <div className="flex flex-col gap-3 border-b border-[#ece8f6] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-lg font-semibold text-slate-900">Alumnos guardados</h2>
-              <p className="text-sm text-slate-500">Los perfiles que ya están guardados .</p>
+              <p className="text-sm text-slate-500">Los alumnos creados por ti. Para que aparezcan en "Alumnos visibles", deben estar inscritos en un curso.</p>
             </div>
-            <label className="flex items-center gap-2 rounded-2xl border border-[#ece8f6] bg-[#fafafa] px-3 py-2">
-              <Search className="h-4 w-4 text-slate-400" />
-              <input
-                type="search"
-                value={studentSearch}
-                onChange={(e) => setStudentSearch(e.target.value)}
-                placeholder="Buscar alumno"
-                className="w-40 bg-transparent text-sm outline-none placeholder:text-slate-400"
-              />
-            </label>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={openCreateStudent}
+                className="inline-flex items-center gap-1.5 rounded-2xl bg-gradient-to-r from-[#9d31ff] to-[#ff318c] px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:brightness-110"
+              >
+                + Crear alumno
+              </button>
+              <label className="flex items-center gap-2 rounded-2xl border border-[#ece8f6] bg-[#fafafa] px-3 py-2">
+                <Search className="h-4 w-4 text-slate-400" />
+                <input
+                  type="search"
+                  value={studentSearch}
+                  onChange={(e) => setStudentSearch(e.target.value)}
+                  placeholder="Buscar alumno"
+                  className="w-40 bg-transparent text-sm outline-none placeholder:text-slate-400"
+                />
+              </label>
+            </div>
           </div>
 
           <div className="max-h-[26rem] overflow-y-auto">
@@ -716,6 +728,7 @@ export default function TeacherDashboard() {
                 <tr className="text-left text-xs uppercase tracking-[0.18em] text-slate-400">
                   <th className="px-5 py-3 font-semibold">Nombre</th>
                   <th className="px-5 py-3 font-semibold">Correo</th>
+                  <th className="px-5 py-3 font-semibold">Grado</th>
                   <th className="px-5 py-3 font-semibold">Accion</th>
                 </tr>
               </thead>
@@ -725,6 +738,7 @@ export default function TeacherDashboard() {
                     <tr key={student.id}>
                       <td className="px-5 py-4 text-sm font-medium text-slate-900">{student.full_name || 'Sin nombre'}</td>
                       <td className="px-5 py-4 text-sm text-slate-600">{student.email}</td>
+                      <td className="px-5 py-4 text-sm text-slate-600">{student.grade_level || '-'}</td>
                       <td className="px-5 py-4 text-sm">
                         <button
                           type="button"
@@ -732,20 +746,24 @@ export default function TeacherDashboard() {
                             const enrollment = filteredEnrollments.find((item) => item.student_id === student.id)
                             if (enrollment) {
                               openEnrollmentEditor(enrollment)
+                            } else if (courses.length > 0) {
+                              const course = courses[0]
+                              openEditCourse(course)
+                              setError(`"${student.full_name || student.email}" no está inscrito en ningún curso. Selecciona un curso e inscríbelo.`)
                             } else {
-                              setError('Ese estudiante no tiene una inscripción visible para editar.')
+                              setError(`"${student.full_name || student.email}" no tiene inscripciones. Crea un curso primero.`)
                             }
                           }}
                           className="rounded-full border border-[#ece8f6] bg-white px-3 py-2 text-xs font-semibold text-[#9d31ff] transition hover:bg-[#f8faff]"
                         >
-                          Ver inscripciones
+                          {filteredEnrollments.some((item) => item.student_id === student.id) ? 'Ver inscripciones' : 'Inscribir en curso'}
                         </button>
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td className="px-5 py-8 text-sm text-slate-500" colSpan={3}>
+                      <td className="px-5 py-8 text-sm text-slate-500" colSpan={4}>
                       No hay alumnos para mostrar.
                     </td>
                   </tr>

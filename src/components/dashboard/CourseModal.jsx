@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { Search } from 'lucide-react'
+import { GRADE_LEVELS } from '../../constants/gradeLevels'
 
 export default function CourseModal({
   open,
@@ -25,16 +26,26 @@ export default function CourseModal({
 }) {
   const selectedCount = course.student_ids?.length || 0
 
+  const gradeFilteredStudents = useMemo(() => {
+    if (!course.grade_level) return students
+    return students.filter((student) => {
+      if (!student.grade_level) return false
+      const studentGrades = student.grade_level.split(',').map(g => g.trim())
+      return studentGrades.includes(course.grade_level)
+    })
+  }, [course.grade_level, students])
+
   const filteredStudents = useMemo(() => {
     const query = (studentSearch || '').trim().toLowerCase()
-    if (!query) return students
+    const pool = gradeFilteredStudents
+    if (!query) return pool
 
-    return students.filter((student) => {
+    return pool.filter((student) => {
       const name = (student.full_name || '').toLowerCase()
       const email = (student.email || '').toLowerCase()
       return name.includes(query) || email.includes(query)
     })
-  }, [studentSearch, students])
+  }, [studentSearch, gradeFilteredStudents])
 
   if (!open) return null
 
@@ -68,13 +79,16 @@ export default function CourseModal({
               placeholder="Materia"
               className="w-full rounded-2xl border border-[#ece8f6] px-4 py-3 text-sm outline-none focus:border-[#9d31ff]/40"
             />
-            <input
-              type="text"
-              value={course.grade_level}
+            <select
+              value={course.grade_level || ''}
               onChange={(e) => onChange('grade_level', e.target.value)}
-              placeholder="Grado"
               className="w-full rounded-2xl border border-[#ece8f6] px-4 py-3 text-sm outline-none focus:border-[#9d31ff]/40"
-            />
+            >
+              <option value="">Seleccionar grado</option>
+              {GRADE_LEVELS.map((grade) => (
+                <option key={grade} value={grade}>{grade}</option>
+              ))}
+            </select>
           </div>
 
           {showTeacherSelect ? (
@@ -125,30 +139,32 @@ export default function CourseModal({
 
             <div className="mt-4 max-h-72 overflow-y-auto pr-1">
               {filteredStudents.length > 0 ? (
-                <div className="grid gap-2 md:grid-cols-2">
-                  {filteredStudents.map((student) => {
-                    const checked = course.student_ids?.includes(student.id)
+                filteredStudents.map((student) => {
+                  const checked = course.student_ids?.includes(student.id)
 
-                    return (
-                      <label
-                        key={student.id}
-                        className={`flex cursor-pointer items-start gap-3 rounded-2xl border px-3 py-3 text-sm transition ${
-                          checked ? 'border-[#9d31ff]/25 bg-[#f8faff]' : 'border-[#ece8f6] bg-white hover:bg-[#f8faff]'
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => onToggleStudent(student.id)}
-                          className="mt-1"
-                        />
-                        <span className="flex-1">
-                          <span className="block font-medium text-slate-900">{student.full_name || student.email}</span>
-                          <span className="block text-xs text-slate-500">{student.email}</span>
-                        </span>
-                      </label>
-                    )
-                  })}
+                  return (
+                    <label
+                      key={student.id}
+                      className={`flex cursor-pointer items-start gap-3 rounded-2xl border px-3 py-3 text-sm transition ${
+                        checked ? 'border-[#9d31ff]/25 bg-[#f8faff]' : 'border-[#ece8f6] bg-white hover:bg-[#f8faff]'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => onToggleStudent(student.id)}
+                        className="mt-1"
+                      />
+                      <span className="flex-1">
+                        <span className="block font-medium text-slate-900">{student.full_name || student.email}</span>
+                        <span className="block text-xs text-slate-500">{student.email} {student.grade_level ? `• ${student.grade_level}` : ''}</span>
+                      </span>
+                    </label>
+                  )
+                })
+              ) : gradeFilteredStudents.length === 0 && course.grade_level ? (
+                <div className="rounded-2xl border border-dashed border-[#ece8f6] bg-white px-4 py-5 text-sm text-slate-500">
+                  No hay alumnos con el grado "{course.grade_level}". Crea alumnos con ese grado primero.
                 </div>
               ) : students.length > 0 ? (
                 <div className="rounded-2xl border border-dashed border-[#ece8f6] bg-white px-4 py-5 text-sm text-slate-500">

@@ -16,6 +16,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true)
   const isHandlingAuthRef = useRef(false)
   const sessionRef = useRef(null)
+  const profileRef = useRef(null)
 
   const recordActivity = () => {
     try {
@@ -46,30 +47,66 @@ export const AuthProvider = ({ children }) => {
     sessionRef.current = session
   }, [session])
 
+  useEffect(() => {
+    profileRef.current = profile
+  }, [profile])
+
   async function fetchProfile(userRecord) {
     // Primero intentamos leer el perfil desde la tabla; si falla, caemos a metadata.
     const fallbackRole =
-      userRecord?.user_metadata?.role || userRecord?.app_metadata?.role || 'student'
+      userRecord?.user_metadata?.role ||
+      userRecord?.app_metadata?.role ||
+      profileRef.current?.role ||
+      'student'
+    const fallbackFullName =
+      userRecord?.user_metadata?.full_name ||
+      userRecord?.email ||
+      profileRef.current?.full_name ||
+      'Sin nombre'
 
     try {
       const { data, error } = await withTimeout(
         supabase.from('profiles').select('*').eq('id', userRecord.id).maybeSingle(),
-        20000,
+        30000,
         'Profile lookup timed out'
       )
 
       if (!error && data) {
+        console.debug('Profile loaded from database:', { id: data.id, role: data.role })
         setProfile(data)
         return data
       }
+
+      if (profileRef.current?.id === userRecord.id) {
+        console.info('Keeping existing cached profile for current user instead of fallback.')
+        return profileRef.current
+      }
+
+      if (error) {
+        console.warn('Profile query error:', error.message)
+      }
     } catch (error) {
-      console.warn('Profile lookup failed, using auth metadata fallback.', error)
+      console.warn(
+        'Profile lookup failed, using auth metadata fallback.',
+        error instanceof Error ? error.message : error
+      )
+      if (profileRef.current?.id === userRecord.id) {
+        console.info('Keeping existing cached profile for current user instead of fallback.')
+        return profileRef.current
+      }
     }
+
+    console.info(
+      'Using auth metadata fallback. Role:',
+      fallbackRole,
+      'Email:',
+      userRecord.email
+    )
 
     const fallbackProfile = {
       id: userRecord.id,
       email: userRecord.email,
-      full_name: userRecord?.user_metadata?.full_name || userRecord.email,
+      full_name: fallbackFullName,
       role: fallbackRole,
     }
 
@@ -96,7 +133,7 @@ export const AuthProvider = ({ children }) => {
           data: { session },
         } = await withTimeout(
           supabase.auth.getSession(),
-          20000,
+          45000,
           'Auth session request timed out'
         )
 
@@ -189,17 +226,32 @@ export const AuthProvider = ({ children }) => {
   }, [])
 
   const login = async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) throw error
+    try {
+      const { data, error } = await withTimeout(
+        supabase.auth.signInWithPassword({ email, password }),
+        45000,
+        'Login request timed out'
+      )
+      if (error) throw error
 
-    if (data?.session?.user) {
-      setSession(data.session)
-      setUser(data.session.user)
-      await fetchProfile(data.session.user)
-      recordActivity()
+      if (data?.session?.user) {
+        setSession(data.session)
+        setUser(data.session.user)
+        console.info(
+          'User logged in:',
+          data.session.user.email,
+          'role:',
+          data.session.user.user_metadata?.role
+        )
+        await fetchProfile(data.session.user)
+        recordActivity()
+      }
+
+      return data
+    } catch (error) {
+      console.error('Login error:', error instanceof Error ? error.message : error)
+      throw error
     }
-
-    return data
   }
 
   const logout = async () => {

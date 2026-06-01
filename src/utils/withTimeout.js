@@ -1,8 +1,13 @@
-export function withTimeout(promise, timeoutMs, timeoutMessage = 'Operation timed out') {
+export function withTimeout(
+  promise,
+  timeoutMs = 30000,
+  timeoutMessage = 'Operation timed out'
+) {
   let timeoutId
 
   const timeoutPromise = new Promise((_, reject) => {
     timeoutId = window.setTimeout(() => {
+      console.warn(`[withTimeout] ${timeoutMessage} (${timeoutMs}ms)`)
       reject(new Error(timeoutMessage))
     }, timeoutMs)
   })

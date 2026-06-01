@@ -261,8 +261,8 @@ function CoursePerformanceModal({ open, course, catalog, analysisMode, onModeCha
             <h3 className="mt-2 text-2xl font-semibold text-slate-900">{course.title}</h3>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
               {activeView === 'students'
-                ? 'Vista individual por alumno dentro del curso.'
-                : 'Vista de comparacion entre cursos.'}
+                ? 'Selecciona alumnos para ver sus notas lado a lado y comparar rendimiento.'
+                : 'Selecciona cursos para comparar sus promedios generales uno al lado del otro.'}
             </p>
           </div>
           <button
@@ -292,7 +292,7 @@ function CoursePerformanceModal({ open, course, catalog, analysisMode, onModeCha
                 activeView === 'students' ? 'bg-[#9d31ff] text-white shadow-lg' : 'border border-[#ece8f6] bg-white text-slate-700 hover:bg-[#f8faff]'
               }`}
             >
-              Ver alumnos del curso
+              Comparar alumnos
             </button>
           </div>
         </div>
@@ -435,7 +435,7 @@ function CourseComparisonView({
 
           <PanelCard title="Tipo de grafico">
             <div className="grid grid-cols-2 gap-2">
-              {STUDENT_CHART_OPTIONS.map((option) => {
+              {CHART_OPTIONS.map((option) => {
                 const Icon = option.icon
                 const active = chartType === option.value
                 return (
@@ -566,6 +566,10 @@ function CourseComparisonView({
           />
         </div>
 
+        {selectedCourses.length >= 2 && (
+          <CourseComparisonTable courses={selectedCourses} />
+        )}
+
         <div className="mt-4 rounded-[2rem] border border-[#ece8f6] bg-white p-4 shadow-sm">
           <div className="flex flex-col gap-3 border-b border-[#ece8f6] pb-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -589,6 +593,8 @@ function CourseComparisonView({
           <div className="mt-4">
             {chartType === 'table' ? (
               <DataTableView records={filteredCourseRecords} />
+            ) : chartType === 'bar' ? (
+              <SimpleBarChart series={chartData.series} categories={chartData.categories} height={360} />
             ) : (
             <ApexChartPanel
               type={chartType}
@@ -599,6 +605,65 @@ function CourseComparisonView({
             )}
           </div>
         </div>
+      </div>
+    </div>
+  )
+}
+
+function CourseComparisonTable({ courses }) {
+  const rows = [
+    { key: 'average_final', label: 'Promedio General' },
+    { key: 'median_final', label: 'Mediana' },
+    { key: 'p75_final', label: 'P75' },
+    { key: 'std_final', label: 'Desv. Estandar' },
+    { key: 'approved_count', label: 'Aprobados' },
+    { key: 'total_students', label: 'Total Alumnos' },
+  ]
+
+  return (
+    <div className="mt-4 overflow-hidden rounded-[2rem] border border-[#ece8f6] bg-white shadow-sm">
+      <div className="border-b border-[#ece8f6] bg-[#f8faff] px-5 py-3">
+        <h4 className="text-sm font-semibold text-slate-900">Comparacion de promedios generales</h4>
+        <p className="text-xs text-slate-500">Promedio general de cada curso lado a lado</p>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-left text-sm">
+          <thead className="bg-[#fafafa]">
+            <tr className="text-xs uppercase tracking-[0.16em] text-slate-400">
+              <th className="px-5 py-3 font-semibold">Metrica</th>
+              {courses.map((course) => (
+                <th key={course.id} className="px-5 py-3 font-semibold text-center">{course.title}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#ece8f6]">
+            {rows.map((row) => (
+              <tr key={row.key} className="hover:bg-[#f8faff]">
+                <td className="px-5 py-3 font-medium text-slate-700">{row.label}</td>
+                {courses.map((course) => {
+                  const value = course[row.key]
+                  const isNumeric = typeof value === 'number'
+                  return (
+                    <td key={course.id} className="px-5 py-3 text-center font-semibold text-slate-900">
+                      {isNumeric ? formatScore(value) : value ?? '-'}
+                    </td>
+                  )
+                })}
+              </tr>
+            ))}
+            <tr className="bg-[#f0fdf4] hover:bg-[#f0fdf4]">
+              <td className="px-5 py-3 font-medium text-emerald-800">Tasa aprobacion</td>
+              {courses.map((course) => {
+                const rate = course.total_students > 0 ? ((course.approved_count / course.total_students) * 100) : 0
+                return (
+                  <td key={course.id} className="px-5 py-3 text-center font-bold text-emerald-700">
+                    {formatScore(rate)}%
+                  </td>
+                )
+              })}
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   )
@@ -667,15 +732,13 @@ function StudentPerformanceView({
   // Obtener estudiantes seleccionados
   const selectedStudents = filteredCards.filter((r) => selectedStudentIds.includes(r.student_id))
   
-  // Función para toggle selección
   const toggleStudentSelection = (studentId) => {
     setSelectedStudentIds((current) => {
       if (current.includes(studentId)) {
         return current.filter((id) => id !== studentId)
       } else {
-        // Máximo 2 alumnos
-        if (current.length >= 2) {
-          return [current[1], studentId]
+        if (current.length >= 4) {
+          return [...current.slice(1), studentId]
         }
         return [...current, studentId]
       }
@@ -715,7 +778,7 @@ function StudentPerformanceView({
                   ? 'Sin selección'
                   : selectedStudents.length === 1
                     ? 'Rendimiento individual'
-                    : 'Comparación de 2 alumnos'}
+                    : `Comparacion de ${selectedStudents.length} alumnos`}
               </span>
             </div>
           </PanelCard>
@@ -739,6 +802,7 @@ function StudentPerformanceView({
           </PanelCard>
 
           <PanelCard title={`Alumnos (${filteredCards.length})`}>
+            <p className="mb-2 text-xs text-slate-400">Selecciona hasta 4 para comparar lado a lado</p>
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {filteredCards.length > 0 ? (
                 filteredCards.map((record, index) => {
@@ -755,7 +819,7 @@ function StudentPerformanceView({
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => toggleStudentSelection(record.student_id)}
-                        disabled={!isSelected && selectedStudentIds.length >= 2}
+                        disabled={!isSelected && selectedStudentIds.length >= 4}
                         className="mt-0.5"
                       />
                       <div className="min-w-0 flex-1">
@@ -884,10 +948,14 @@ function StudentPerformanceView({
           <SummaryCard
             label="Seleccionados"
             value={selectedStudents.length}
-            helper={selectedStudents.length === 0 ? 'Elige 1 o 2 alumnos' : selectedStudents.map((s) => s.student_name).join(' vs ')}
+            helper={selectedStudents.length === 0 ? 'Elige hasta 4 alumnos' : selectedStudents.map((s) => s.student_name).join(' vs ')}
           />
           <SummaryCard label="Listado" value={filteredCards.length} helper="Alumnos disponibles" />
         </div>
+
+        {selectedStudents.length >= 2 && (
+          <StudentComparisonTable students={selectedStudents} periodKeys={selectedPeriodKeys} />
+        )}
 
         <div className="mt-4 rounded-[2rem] border border-[#ece8f6] bg-white p-4 shadow-sm">
           <div className="flex flex-col gap-3 border-b border-[#ece8f6] pb-4 sm:flex-row sm:items-center sm:justify-between">
@@ -897,7 +965,7 @@ function StudentPerformanceView({
                   ? 'Selecciona alumnos para comparar'
                   : selectedStudents.length === 1
                     ? `Rendimiento de ${selectedStudents[0].student_name}`
-                    : `Comparación: ${selectedStudents[0].student_name} vs ${selectedStudents[1].student_name}`}
+                    : `Comparacion: ${selectedStudents.map((s) => s.student_name).join(' vs ')}`}
               </h4>
               <p className="text-sm text-slate-500">
                 {selectedStudents.length === 0
@@ -911,7 +979,7 @@ function StudentPerformanceView({
             </div>
             <div className="inline-flex items-center gap-2 rounded-2xl bg-[#f8faff] px-3 py-2 text-xs font-semibold text-slate-500">
               <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-              {selectedStudents.length === 0 ? 'Sin selección' : selectedStudents.length === 1 ? '1 alumno' : '2 alumnos comparados'}
+              {selectedStudents.length === 0 ? 'Sin selección' : selectedStudents.length === 1 ? '1 alumno' : `${selectedStudents.length} alumnos comparados`}
             </div>
           </div>
 
@@ -920,6 +988,8 @@ function StudentPerformanceView({
               <EmptyChartState />
             ) : chartType === 'table' ? (
               <DataTableView records={selectedStudents} />
+            ) : chartType === 'bar' ? (
+              <SimpleBarChart series={comparisonChartData.series} categories={comparisonChartData.categories} height={360} />
             ) : (
               <ApexChartPanel type={chartType} options={comparisonChartOptions} series={comparisonChartData.series} height={440} />
             )}
@@ -935,6 +1005,210 @@ function StudentPerformanceView({
             ))}
           </div>
         )}
+      </div>
+    </div>
+  )
+}
+
+function StudentComparisonTable({ students, periodKeys }) {
+  const periods = PERIOD_DEFINITIONS.filter((p) => periodKeys.includes(p.key))
+  const rows = [
+    ...periods.map((p) => ({ key: p.key, label: p.label })),
+    { key: 'final_grade', label: 'PF' },
+    { key: 'attendance', label: 'Asistencia' },
+  ]
+
+  return (
+    <div className="mt-4 overflow-hidden rounded-[2rem] border border-[#ece8f6] bg-white shadow-sm">
+      <div className="border-b border-[#ece8f6] bg-[#f8faff] px-5 py-3">
+        <h4 className="text-sm font-semibold text-slate-900">Comparacion lado a lado</h4>
+        <p className="text-xs text-slate-500">Notas de los alumnos seleccionados en columnas paralelas</p>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-left text-sm">
+          <thead className="bg-[#fafafa]">
+            <tr className="text-xs uppercase tracking-[0.16em] text-slate-400">
+              <th className="px-5 py-3 font-semibold">Periodo</th>
+              {students.map((student) => (
+                <th key={student.student_id} className="px-5 py-3 font-semibold text-center">
+                  <div className="font-medium text-slate-900">{student.student_name}</div>
+                  <div className="text-[10px] text-slate-400 font-normal">{student.student_email}</div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#ece8f6]">
+            {rows.map((row) => (
+              <tr key={row.key} className="hover:bg-[#f8faff]">
+                <td className="px-5 py-3 font-medium text-slate-700">{row.label}</td>
+                {students.map((student) => {
+                  const value = row.key === 'attendance' ? getAttendanceValue(student) : student[row.key]
+                  const isPassing = row.key === 'final_grade' && Number(value || 0) >= PASSING_GRADE
+                  return (
+                    <td
+                      key={student.student_id}
+                      className={`px-5 py-3 text-center font-semibold ${
+                        isPassing ? 'text-emerald-600' : 'text-slate-900'
+                      }`}
+                    >
+                      {value !== null && value !== undefined ? formatScore(value) : '-'}
+                    </td>
+                  )
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function SimpleBarChart({ series, categories, height = 360 }) {
+  if (!series || series.length === 0 || !categories || categories.length === 0) {
+    return <EmptyChartState />
+  }
+
+  const MAX_VALUE = 5
+  const MARGIN = { top: 16, right: 16, bottom: 32, left: 36 }
+  const innerW = 800 - MARGIN.left - MARGIN.right
+  const innerH = height - MARGIN.top - MARGIN.bottom
+  const numCats = categories.length
+  const numSers = series.length
+  const groupW = innerW / numCats
+  const barW = Math.min((groupW * 0.8) / numSers, 60)
+
+  const yScale = (value) => {
+    const ratio = Math.min(Math.max(Number(value) || 0, 0), MAX_VALUE) / MAX_VALUE
+    return MARGIN.top + innerH - ratio * innerH
+  }
+
+  const barHeight = (value) => {
+    const ratio = Math.min(Math.max(Number(value) || 0, 0), MAX_VALUE) / MAX_VALUE
+    return Math.max(ratio * innerH, 2)
+  }
+
+  return (
+    <div className="w-full">
+      <div className="flex flex-wrap gap-4 justify-center mb-4">
+        {series.map((s, i) => (
+          <div key={s.name} className="flex items-center gap-1.5 text-xs font-medium text-slate-700">
+            <span
+              className="inline-block h-3 w-3 rounded-sm"
+              style={{ backgroundColor: s.color || CHART_COLORS[i % CHART_COLORS.length] }}
+            />
+            {s.name}
+          </div>
+        ))}
+      </div>
+
+      <div className="relative w-full overflow-x-auto" style={{ height: `${height}px` }}>
+        <svg width="100%" height={height} viewBox={`0 0 800 ${height}`} preserveAspectRatio="xMidYMid meet" className="overflow-visible">
+          <defs>
+            {series.map((s, i) => (
+              <linearGradient key={s.name} id={`barGrad-${i}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={s.color || CHART_COLORS[i % CHART_COLORS.length]} stopOpacity="0.85" />
+                <stop offset="100%" stopColor={s.color || CHART_COLORS[i % CHART_COLORS.length]} stopOpacity="0.55" />
+              </linearGradient>
+            ))}
+          </defs>
+
+          {[0, 1, 2, 3, 4, 5].map((value) => {
+            const y = yScale(value)
+            return (
+              <g key={value}>
+                <text
+                  x={MARGIN.left - 8}
+                  y={y + 4}
+                  textAnchor="end"
+                  fill="#94a3b8"
+                  fontSize="11"
+                  fontWeight="600"
+                >
+                  {value}
+                </text>
+                <line
+                  x1={MARGIN.left}
+                  x2={800 - MARGIN.right}
+                  y1={y}
+                  y2={y}
+                  stroke={value === PASSING_GRADE ? "#10b981" : "#ece8f6"}
+                  strokeWidth={value === PASSING_GRADE ? 2 : 1}
+                  strokeDasharray={value === PASSING_GRADE ? "6,3" : "none"}
+                />
+                {value === PASSING_GRADE && (
+                  <text
+                    x={800 - MARGIN.right + 4}
+                    y={y - 4}
+                    fill="#10b981"
+                    fontSize="10"
+                    fontWeight="600"
+                  >
+                    Aprobacion {PASSING_GRADE}
+                  </text>
+                )}
+              </g>
+            )
+          })}
+
+          {categories.map((category, catIndex) => {
+            const groupStart = MARGIN.left + catIndex * groupW
+            const totalBarW = barW * numSers
+            const offsetX = groupStart + (groupW - totalBarW) / 2
+
+            return (
+              <g key={category}>
+                {series.map((s, serIndex) => {
+                  const raw = Number(s.data[catIndex]) || 0
+                  const bh = barHeight(raw)
+                  const bx = offsetX + serIndex * barW
+                  const by = yScale(raw)
+                  const color = s.color || CHART_COLORS[serIndex % CHART_COLORS.length]
+
+                  return (
+                    <g key={`${category}-${s.name}`}>
+                      <rect
+                        x={bx}
+                        y={by}
+                        width={barW}
+                        height={bh}
+                        rx="4"
+                        fill={`url(#barGrad-${serIndex})`}
+                        stroke={color}
+                        strokeWidth="1"
+                        className="transition-opacity hover:opacity-80"
+                      >
+                        <title>{`${s.name}: ${formatScore(raw)}`}</title>
+                      </rect>
+                      {raw > 0 && (
+                        <text
+                          x={bx + barW / 2}
+                          y={by - 6}
+                          textAnchor="middle"
+                          fill="#1e293b"
+                          fontSize="11"
+                          fontWeight="700"
+                        >
+                          {formatScore(raw)}
+                        </text>
+                      )}
+                    </g>
+                  )
+                })}
+                <text
+                  x={groupStart + groupW / 2}
+                  y={height - MARGIN.bottom / 2 + 5}
+                  textAnchor="middle"
+                  fill="#64748b"
+                  fontSize="12"
+                  fontWeight="600"
+                >
+                  {category}
+                </text>
+              </g>
+            )
+          })}
+        </svg>
       </div>
     </div>
   )
@@ -956,10 +1230,10 @@ function ApexChartPanel({ type, options, series, height = 420 }) {
     setChartError(null)
 
     const renderChart = async () => {
-      const baseChartOptions = {
+      const chartOptions = {
+        ...options,
         chart: {
-          type: options?.chart?.type || type,
-          height: options?.chart?.height || height,
+          ...(options?.chart || {}),
           zoom: {
             enabled: true,
             type: options?.chart?.zoom?.type || 'x',
@@ -984,15 +1258,6 @@ function ApexChartPanel({ type, options, series, height = 420 }) {
             speed: 700,
           },
           fontFamily: 'Inter, ui-sans-serif, system-ui',
-        },
-      }
-
-      const chartOptions = {
-        ...options,
-        ...baseChartOptions,
-        chart: {
-          ...baseChartOptions.chart,
-          ...(options?.chart || {}),
         },
         series,
       }
@@ -1144,20 +1409,6 @@ function buildComparisonChartOptions(chartData, chartType, selectedPeriodKeys) {
       theme: {
         mode: 'light',
       },
-      states: {
-        hover: {
-          filter: {
-            type: 'lighten',
-            value: 0.08,
-          },
-        },
-        active: {
-          filter: {
-            type: 'darken',
-            value: 0.15,
-          },
-        },
-      },
       annotations: {
         yaxis: [
           {
@@ -1176,9 +1427,12 @@ function buildComparisonChartOptions(chartData, chartType, selectedPeriodKeys) {
     }
   }
 
+  const isBar = chartType === 'bar'
+
   return {
     chart: {
-      type: chartType === 'area' ? 'area' : 'bar',
+      type: isBar ? 'bar' : 'area',
+      stacked: false,
       height: 440,
       zoom: {
         enabled: true,
@@ -1187,25 +1441,29 @@ function buildComparisonChartOptions(chartData, chartType, selectedPeriodKeys) {
       },
     },
     colors: CHART_COLORS,
-    plotOptions: chartType === 'bar' ? {
+    plotOptions: isBar ? {
       bar: {
         borderRadius: 8,
-        columnWidth: '38%',
+        horizontal: false,
         distributed: false,
+        dataLabels: {
+          position: 'top',
+        },
       },
     } : {},
-    stroke: {
+    stroke: isBar ? {} : {
       curve: 'smooth',
-      width: chartType === 'area' ? 3 : 2,
+      width: 3,
     },
     dataLabels: {
-      enabled: chartType === 'bar',
+      enabled: isBar,
       formatter: (value) => formatScore(value),
+      offsetY: -5,
     },
-    fill: chartType === 'area' ? {
+    fill: isBar ? {} : {
       type: 'solid',
       opacity: 0.14,
-    } : {},
+    },
     xaxis: {
       type: 'category',
       categories: chartData.categories || selectedPeriodKeys.map((periodKey) => getAcademicPeriodLabel(periodKey)),
@@ -1361,26 +1619,13 @@ function buildStudentChartOptions(chartData, chartType) {
       theme: {
         mode: 'light',
       },
-      states: {
-        hover: {
-          filter: {
-            type: 'lighten',
-            value: 0.1,
-          },
-        },
-        active: {
-          filter: {
-            type: 'darken',
-            value: 0.15,
-          },
-        },
-      },
     }
   }
 
   return {
     chart: {
       type: 'bar',
+      stacked: false,
       height: 440,
       zoom: {
         enabled: true,
@@ -1389,19 +1634,19 @@ function buildStudentChartOptions(chartData, chartType) {
       },
     },
     colors: CHART_COLORS,
-    plotOptions: chartType === 'bar' ? {
+    plotOptions: {
       bar: {
         borderRadius: 8,
-        columnWidth: '36%',
+        horizontal: false,
+        dataLabels: {
+          position: 'top',
+        },
       },
-    } : {},
-    stroke: {
-      curve: 'smooth',
-      width: 2,
     },
     dataLabels: {
-      enabled: chartType === 'bar',
+      enabled: true,
       formatter: (value) => formatScore(value),
+      offsetY: -5,
     },
     xaxis: {
       type: 'category',

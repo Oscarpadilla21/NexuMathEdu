@@ -5,10 +5,19 @@ import { supabase } from '../lib/supabase'
 import DashboardHeader from '../components/layout/DashboardHeader'
 import UserModal from '../components/dashboard/UserModal'
 import CourseModal from '../components/dashboard/CourseModal'
+import TeacherAssignmentModal from '../components/dashboard/TeacherAssignmentModal'
 import CoursePerformanceSection from '../components/dashboard/CoursePerformanceSection'
 import { withTimeout } from '../utils/withTimeout'
 
-const EMPTY_USER = { email: '', full_name: '', role: 'student', password: '' }
+const EMPTY_USER = {
+  email: '',
+  full_name: '',
+  role: 'student',
+  password: '',
+  grade_level: '',
+  assign_to_teacher_id: '',
+  assigned_grade_levels: [],
+}
 const EMPTY_COURSE = {
   title: '',
   description: '',
@@ -40,6 +49,11 @@ export default function AdminDashboard() {
   const [userActionLoading, setUserActionLoading] = useState(false)
   const [newUser, setNewUser] = useState(EMPTY_USER)
   const [courseForm, setCourseForm] = useState(EMPTY_COURSE)
+  const [showAssignmentModal, setShowAssignmentModal] = useState(false)
+  const [assignmentType, setAssignmentType] = useState('students') // 'students' | 'courses'
+  const [assignmentLoading, setAssignmentLoading] = useState(false)
+  const [editingUserId, setEditingUserId] = useState(null)
+  const [editingUser, setEditingUser] = useState(null)
 
   const teacherUsers = useMemo(() => users.filter((user) => user.role === 'teacher'), [users])
   const studentUsers = useMemo(() => users.filter((user) => user.role === 'student'), [users])
@@ -105,8 +119,14 @@ export default function AdminDashboard() {
             return {
               id: authUser.id,
               email: authUser.email || profile?.email || '',
-              full_name: profile?.full_name || authUser.full_name || authUser.email || '',
-              role: profile?.role || authUser.role || 'student',
+              full_name:
+                profile?.full_name || authUser.user_metadata?.full_name || authUser.full_name || authUser.email || '',
+              role:
+                profile?.role || authUser.user_metadata?.role || authUser.app_metadata?.role || authUser.role || 'student',
+              grade_level:
+                profile?.grade_level || authUser.user_metadata?.grade_level || null,
+              assigned_grade_levels:
+                profile?.assigned_grade_levels || authUser.user_metadata?.assigned_grade_levels || [],
               created_at: profile?.created_at || authUser.created_at,
               source: 'auth',
               has_profile: !!profile,
@@ -316,14 +336,35 @@ export default function AdminDashboard() {
     setUserActionLoading(true)
 
     try {
-      const { data, error } = await supabase.functions.invoke('create-user', {
-        body: {
-          email: newUser.email,
-          password: newUser.password,
-          full_name: newUser.full_name,
-          role: newUser.role === 'admin' ? 'student' : newUser.role,
-        },
-      })
+      const body = {
+        email: newUser.email,
+        password: newUser.password,
+        full_name: newUser.full_name,
+        role: newUser.role,
+      }
+
+      if (newUser.role === 'student') {
+        if (!newUser.grade_level) {
+          alert('Selecciona un grado para el estudiante antes de crear el usuario.')
+          setUserActionLoading(false)
+          return
+        }
+
+        body.grade_level = newUser.grade_level
+        if (newUser.assign_to_teacher_id) {
+          body.assign_to_teacher_id = newUser.assign_to_teacher_id
+        }
+      }
+
+      if (newUser.role === 'teacher') {
+        body.assigned_grade_levels = Array.isArray(newUser.assigned_grade_levels)
+          ? newUser.assigned_grade_levels
+          : typeof newUser.assigned_grade_levels === 'string'
+          ? newUser.assigned_grade_levels.split(',').map((grade) => grade.trim()).filter(Boolean)
+          : []
+      }
+
+      const { data, error } = await supabase.functions.invoke('create-user', { body })
 
       if (error) {
         alert(`Error al crear usuario: ${error.message}`)
@@ -366,6 +407,106 @@ export default function AdminDashboard() {
     await supabase.from('profiles').update({ role: newRole }).eq('id', userId)
     alert('Role updated')
     await fetchData()
+  }
+
+  const handleEditUser = (user) => {
+    setEditingUserId(user.id)
+    setEditingUser({
+      email: user.email,
+      full_name: user.full_name || '',
+      role: user.role,
+      password: '',
+      grade_level: user.grade_level || '',
+      assigned_grade_levels: Array.isArray(user.assigned_grade_levels)
+        ? user.assigned_grade_levels
+        : typeof user.assigned_grade_levels === 'string'
+        ? user.assigned_grade_levels.split(',').map((g) => g.trim()).filter(Boolean)
+        : [],
+    })
+    setShowUserModal(true)
+  }
+
+  const handleUpdateUser = async (e) => {
+    e.preventDefault()
+    if (!editingUserId || !editingUser) return
+
+    setUserActionLoading(true)
+
+    try {
+      const updatePayload = {
+        full_name: editingUser.full_name,
+      }
+
+      if (editingUser.role === 'student') {
+        if (!editingUser.grade_level) {
+          alert('Selecciona un grado para el estudiante antes de actualizar el usuario.')
+          setUserActionLoading(false)
+          return
+        }
+        updatePayload.grade_level = editingUser.grade_level
+      }
+
+      if (editingUser.role === 'teacher') {
+        updatePayload.assigned_grade_levels = Array.isArray(editingUser.assigned_grade_levels)
+          ? editingUser.assigned_grade_levels
+          : typeof editingUser.assigned_grade_levels === 'string'
+          ? editingUser.assigned_grade_levels.split(',').map((g) => g.trim()).filter(Boolean)
+          : []
+      }
+
+      const { error } = await supabase.from('profiles').update(updatePayload).eq('id', editingUserId)
+
+      if (error) {
+        alert(`Error al actualizar usuario: ${error.message}`)
+      } else {
+        alert('Usuario actualizado exitosamente')
+        setShowUserModal(false)
+        setEditingUserId(null)
+        setEditingUser(null)
+        await fetchData()
+      }
+    } catch (error) {
+      console.error('Error al actualizar usuario', error)
+      alert('No se pudo actualizar el usuario')
+    }
+
+    setUserActionLoading(false)
+  }
+
+  const handleAssignResources = async ({ teacher_id, resource_ids, type }) => {
+    setAssignmentLoading(true)
+    try {
+      const functionName = type === 'students' ? 'admin-assign-students-to-teacher' : 'admin-assign-courses-to-teacher'
+      const bodyKey = type === 'students' ? 'student_ids' : 'course_ids'
+
+      const { error } = await supabase.functions.invoke(functionName, {
+        body: {
+          teacher_id,
+          [bodyKey]: resource_ids,
+        },
+      })
+
+      if (error) {
+        alert(`Error: ${error.message}`)
+      } else {
+        alert(type === 'students' ? 'Alumnos asignados exitosamente' : 'Cursos asignados exitosamente')
+        await fetchData()
+      }
+    } catch (err) {
+      alert(`Error: ${err?.message}`)
+    } finally {
+      setAssignmentLoading(false)
+    }
+  }
+
+  const openAssignStudentsModal = () => {
+    setAssignmentType('students')
+    setShowAssignmentModal(true)
+  }
+
+  const openAssignCoursesModal = () => {
+    setAssignmentType('courses')
+    setShowAssignmentModal(true)
   }
 
   if (loading) return <div className="flex h-screen items-center justify-center">Loading...</div>
@@ -517,6 +658,7 @@ export default function AdminDashboard() {
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Email</th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Nombre</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Grado</th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Rol</th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Acciones</th>
                 </tr>
@@ -528,6 +670,13 @@ export default function AdminDashboard() {
                     <tr key={user.id}>
                       <td className="px-6 py-4 text-sm">{user.email}</td>
                       <td className="px-6 py-4 text-sm">{user.full_name || '-'}</td>
+                      <td className="px-6 py-4 text-sm">
+                        {user.role === 'teacher'
+                          ? Array.isArray(user.assigned_grade_levels)
+                            ? user.assigned_grade_levels.join(', ')
+                            : user.assigned_grade_levels || '-'
+                          : user.grade_level || '-'}
+                      </td>
                       <td className="px-6 py-4 text-sm">
                         {user.role === 'admin' ? (
                           <span className="inline-flex rounded bg-purple-100 px-2 py-1 text-xs font-semibold text-purple-700">
@@ -551,6 +700,13 @@ export default function AdminDashboard() {
                           </span>
                         ) : null}
                         <button
+                          onClick={() => handleEditUser(user)}
+                          disabled={isSelf}
+                          className="mr-3 text-blue-600 hover:text-blue-800 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          {isSelf ? 'No disponible' : 'Editar'}
+                        </button>
+                        <button
                           onClick={() => handleDeleteUser(user.id, user.email)}
                           disabled={isSelf}
                           className="text-red-600 hover:text-red-800 disabled:cursor-not-allowed disabled:opacity-40"
@@ -568,18 +724,29 @@ export default function AdminDashboard() {
 
         <UserModal
           open={showUserModal}
-          title="Crear nuevo usuario"
-          description="Crea cuentas de estudiante o profesor."
-          user={newUser}
-          onChange={(field, value) => setNewUser((current) => ({ ...current, [field]: value }))}
-          roleOptions={[
+          title={editingUserId ? 'Editar usuario' : 'Crear nuevo usuario'}
+          description={editingUserId ? 'Actualiza la información del usuario.' : 'Crea cuentas de estudiante o profesor.'}
+          user={editingUserId ? editingUser : newUser}
+          onChange={(field, value) =>
+            editingUserId
+              ? setEditingUser((current) => ({ ...current, [field]: value }))
+              : setNewUser((current) => ({ ...current, [field]: value }))
+          }
+          roleOptions={editingUserId ? [] : [
             { value: 'student', label: 'Estudiante' },
             { value: 'teacher', label: 'Profesor' },
+            { value: 'admin', label: 'Administrador' },
           ]}
-          onSubmit={handleCreateUser}
-          onClose={() => setShowUserModal(false)}
+          teacherOptions={teacherUsers}
+          onSubmit={editingUserId ? handleUpdateUser : handleCreateUser}
+          onClose={() => {
+            setShowUserModal(false)
+            setNewUser(EMPTY_USER)
+            setEditingUserId(null)
+            setEditingUser(null)
+          }}
           submitting={userActionLoading}
-          submitLabel="Crear"
+          submitLabel={editingUserId ? 'Guardar cambios' : 'Crear'}
         />
 
         <CourseModal
