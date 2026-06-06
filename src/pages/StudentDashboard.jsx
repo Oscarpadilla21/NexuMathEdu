@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BookOpen, GraduationCap, RefreshCw, TrendingUp } from 'lucide-react'
-import DashboardHeader from '../components/layout/DashboardHeader'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { calculateFinalGrade } from '../utils/grades'
@@ -143,36 +142,35 @@ export default function StudentDashboard() {
 
   if (initialLoading) {
     return (
-      <div className="flex min-h-screen w-full flex-col bg-gray-100">
-        <DashboardHeader
-          subtitle={profile?.full_name || profile?.email}
-          userLabel="Estudiante"
-          navItems={navItems}
-          onLogout={handleLogout}
-          variant="gradient"
-          showSubtitle={false}
-        />
-        <div className="flex min-h-[70svh] items-center justify-center px-4">
-          <div className="rounded-3xl border border-[#ece8f6] bg-white px-6 py-5 text-sm text-slate-600 shadow-2xl">
-            Cargando tus notas...
+      <main className="flex w-full flex-1 flex-col gap-6">
+        <section className="overflow-hidden rounded-[2rem] border border-[#ece8f6] bg-white shadow-2xl">
+          <div className="flex flex-col gap-4 border-b border-[#ece8f6] px-5 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="space-y-2">
+              <div className="h-4 w-24 animate-pulse rounded-full bg-[#f1ecfb]" />
+              <div className="h-8 w-56 animate-pulse rounded-full bg-[#f1ecfb]" />
+              <div className="h-4 w-80 animate-pulse rounded-full bg-[#f7f4fe]" />
+            </div>
+            <div className="h-11 w-28 animate-pulse rounded-2xl bg-[#f1ecfb]" />
           </div>
-        </div>
-      </div>
+          <div className="grid gap-4 p-5 sm:p-6 md:grid-cols-3">
+            {[...Array(3)].map((_, index) => (
+              <div key={index} className="rounded-3xl border border-[#ece8f6] bg-[#f8faff] p-5">
+                <div className="h-3 w-20 animate-pulse rounded-full bg-[#eee6fb]" />
+                <div className="mt-4 h-8 w-16 animate-pulse rounded-full bg-[#eee6fb]" />
+              </div>
+            ))}
+          </div>
+        </section>
+        <section className="rounded-[2rem] border border-[#ece8f6] bg-white p-6 shadow-2xl">
+          <div className="h-5 w-32 animate-pulse rounded-full bg-[#f1ecfb]" />
+          <div className="mt-4 h-60 animate-pulse rounded-[1.5rem] bg-[#faf8ff]" />
+        </section>
+      </main>
     )
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-gray-100">
-      <DashboardHeader
-        subtitle={profile?.full_name || profile?.email}
-        userLabel="Estudiante"
-        navItems={navItems}
-        onLogout={handleLogout}
-        variant="gradient"
-        showSubtitle={false}
-      />
-
-      <main className="flex w-full flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+    <main className="flex w-full flex-1 flex-col gap-6">
         <section className="overflow-hidden rounded-[2rem] border border-[#ece8f6] bg-white shadow-2xl">
           <div className="flex flex-col gap-4 border-b border-[#ece8f6] px-5 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
             <div>
@@ -276,7 +274,6 @@ export default function StudentDashboard() {
           </div>
         </section>
       </main>
-    </div>
   )
 }
 

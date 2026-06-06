@@ -1,7 +1,6 @@
 import { useMemo, useState, useEffect } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import DashboardHeader from '../components/layout/DashboardHeader'
 import { useAuth } from '../contexts/AuthContext'
 
 const roleLabels = {
@@ -101,20 +100,7 @@ export default function ProfilePage() {
   const roleLabel = roleLabels[resolvedRole] || 'Usuario'
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Cabecera compartida con navegacion a las areas principales. */}
-      <DashboardHeader
-        subtitle={resolvedName}
-        userLabel={roleLabel}
-        navItems={[
-          { label: 'Inicio', to: `/${resolvedRole || 'login'}` },
-          { label: 'Mi perfil', to: '/perfil' },
-          { label: 'Chat', to: '/chat' },
-        ]}
-        onLogout={handleLogout}
-        variant="gradient"
-      />
-
+    <div className="min-h-[calc(100svh-64px)] bg-slate-50">
       {/* Vista de detalle del perfil y accesos rapidos al resto de la app. */}
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
         <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">

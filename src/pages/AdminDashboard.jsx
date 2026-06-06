@@ -2,7 +2,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
-import DashboardHeader from '../components/layout/DashboardHeader'
 import UserModal from '../components/dashboard/UserModal'
 import CourseModal from '../components/dashboard/CourseModal'
 import TeacherAssignmentModal from '../components/dashboard/TeacherAssignmentModal'
@@ -35,7 +34,8 @@ export default function AdminDashboard() {
   const [courses, setCourses] = useState([])
   const [courseGrades, setCourseGrades] = useState([])
   const [stats, setStats] = useState({ users: 0, teachers: 0, students: 0, courses: 0 })
-  const [loading, setLoading] = useState(true)
+  const [initialLoading, setInitialLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [loadError, setLoadError] = useState('')
   const [showUserModal, setShowUserModal] = useState(false)
   const [showCourseModal, setShowCourseModal] = useState(false)
@@ -54,6 +54,28 @@ export default function AdminDashboard() {
   const [assignmentLoading, setAssignmentLoading] = useState(false)
   const [editingUserId, setEditingUserId] = useState(null)
   const [editingUser, setEditingUser] = useState(null)
+
+  const getFunctionErrorMessage = async (error, data, fallback) => {
+    const response = error?.context
+
+    if (response && typeof response.clone === 'function') {
+      try {
+        const cloned = response.clone()
+        const payload = await cloned.json()
+        return payload?.error || payload?.message || fallback
+      } catch {
+        try {
+          const cloned = response.clone()
+          const text = await cloned.text()
+          return text || fallback
+        } catch {
+          // Fall through to the generic message below.
+        }
+      }
+    }
+
+    return data?.error || error?.message || fallback
+  }
 
   const teacherUsers = useMemo(() => users.filter((user) => user.role === 'teacher'), [users])
   const studentUsers = useMemo(() => users.filter((user) => user.role === 'student'), [users])
@@ -85,8 +107,12 @@ export default function AdminDashboard() {
     return map
   }, [enrollments])
 
-  const fetchData = async () => {
-    setLoading(true)
+  const fetchData = async ({ initial = false } = {}) => {
+    if (initial) {
+      setInitialLoading(true)
+    } else {
+      setRefreshing(true)
+    }
     setLoadError('')
 
     try {
@@ -155,19 +181,23 @@ export default function AdminDashboard() {
     } catch (error) {
       console.warn('No se pudo cargar la lista completa de usuarios.', error)
       setLoadError('No se pudo cargar la lista completa de usuarios.')
+    } finally {
+      if (initial) {
+        setInitialLoading(false)
+      } else {
+        setRefreshing(false)
+      }
     }
-
-    setLoading(false)
   }
 
   useEffect(() => {
     const fallbackTimer = window.setTimeout(() => {
       setLoadError((current) => current || 'La carga inicial del panel administrativo tardó demasiado. Mostrando la vista disponible.')
-      setLoading(false)
+      setInitialLoading(false)
     }, 12000)
 
     const timer = window.setTimeout(() => {
-      void fetchData().finally(() => {
+      void fetchData({ initial: true }).finally(() => {
         window.clearTimeout(fallbackTimer)
       })
     }, 0)
@@ -398,23 +428,44 @@ export default function AdminDashboard() {
     }
   }
 
-  const handleChangeRole = async (userId, userEmail, userFullName, newRole) => {
+  const handleChangeRole = async (user, newRole) => {
+    const userId = user.id
+    const userEmail = user.email
+    const userFullName = user.full_name
+
     if (newRole === 'admin') {
       alert('Admin role cannot be assigned from the panel')
       return
     }
 
-    const { error } = await supabase.functions.invoke('update-user', {
+    const existingAssignedGrades = Array.isArray(user.assigned_grade_levels)
+      ? user.assigned_grade_levels
+      : typeof user.assigned_grade_levels === 'string'
+      ? user.assigned_grade_levels.split(',').map((grade) => grade.trim()).filter(Boolean)
+      : []
+
+    const fallbackAssignedGrades =
+      newRole === 'teacher'
+        ? existingAssignedGrades.length > 0
+          ? existingAssignedGrades
+          : user.grade_level
+          ? [user.grade_level]
+          : []
+        : undefined
+
+    const { data, error } = await supabase.functions.invoke('update-user', {
       body: {
         id: userId,
         email: userEmail,
         full_name: userFullName,
         role: newRole,
+        ...(fallbackAssignedGrades && fallbackAssignedGrades.length > 0 ? { assigned_grade_levels: fallbackAssignedGrades } : {}),
       },
     })
 
     if (error) {
-      alert(`Error al actualizar rol: ${error.message}`)
+      const message = await getFunctionErrorMessage(error, data, 'No se pudo actualizar el rol')
+      alert(`Error al actualizar rol: ${message}`)
     } else {
       alert('Role updated')
       await fetchData()
@@ -475,12 +526,13 @@ export default function AdminDashboard() {
           : []
       }
 
-      const { error } = await supabase.functions.invoke('update-user', {
+      const { data, error } = await supabase.functions.invoke('update-user', {
         body: updatePayload,
       })
 
       if (error) {
-        alert(`Error al actualizar usuario: ${error.message}`)
+        const message = await getFunctionErrorMessage(error, data, 'No se pudo actualizar el usuario')
+        alert(`Error al actualizar usuario: ${message}`)
       } else {
         alert('Usuario actualizado exitosamente')
         setShowUserModal(false)
@@ -502,7 +554,7 @@ export default function AdminDashboard() {
       const functionName = type === 'students' ? 'admin-assign-students-to-teacher' : 'admin-assign-courses-to-teacher'
       const bodyKey = type === 'students' ? 'student_ids' : 'course_ids'
 
-      const { error } = await supabase.functions.invoke(functionName, {
+      const { data, error } = await supabase.functions.invoke(functionName, {
         body: {
           teacher_id,
           [bodyKey]: resource_ids,
@@ -510,13 +562,16 @@ export default function AdminDashboard() {
       })
 
       if (error) {
-        alert(`Error: ${error.message}`)
+        console.error('Assignment error:', { error, data })
+        const errorMsg = data?.error || error.message || `Error al asignar ${type === 'students' ? 'alumnos' : 'cursos'}`
+        alert(`Error: ${errorMsg}`)
       } else {
         alert(type === 'students' ? 'Alumnos asignados exitosamente' : 'Cursos asignados exitosamente')
         await fetchData()
       }
     } catch (err) {
-      alert(`Error: ${err?.message}`)
+      console.error('Assignment exception:', err)
+      alert(`Error: ${err?.message || 'Error desconocido'}`)
     } finally {
       setAssignmentLoading(false)
     }
@@ -532,23 +587,49 @@ export default function AdminDashboard() {
     setShowAssignmentModal(true)
   }
 
-  if (loading) return <div className="flex h-screen items-center justify-center">Loading...</div>
+  if (initialLoading) {
+    return (
+      <main className="w-full flex-1 space-y-8">
+        <section className="rounded-[2rem] border border-[#ece8f6] bg-white p-6 shadow-2xl">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-2">
+              <div className="h-6 w-56 animate-pulse rounded-full bg-[#f1ecfb]" />
+              <div className="h-4 w-80 animate-pulse rounded-full bg-[#f7f4fe]" />
+            </div>
+            <div className="flex gap-3">
+              <div className="h-10 w-28 animate-pulse rounded-2xl bg-[#f1ecfb]" />
+              <div className="h-10 w-24 animate-pulse rounded-2xl bg-[#f1ecfb]" />
+            </div>
+          </div>
+
+          <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-4">
+            {[...Array(4)].map((_, index) => (
+              <div key={index} className="rounded-2xl border border-[#f2ecfb] bg-[#fcfbff] p-5">
+                <div className="h-3 w-20 animate-pulse rounded-full bg-[#eee6fb]" />
+                <div className="mt-4 h-8 w-16 animate-pulse rounded-full bg-[#eee6fb]" />
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-8 space-y-3">
+            <div className="h-4 w-56 animate-pulse rounded-full bg-[#f1ecfb]" />
+            <div className="h-24 animate-pulse rounded-[1.5rem] bg-[#faf8ff]" />
+          </div>
+        </section>
+      </main>
+    )
+  }
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-gray-100">
-      <DashboardHeader
-        subtitle={profile?.full_name || profile?.email}
-        userLabel="Administrador"
-        navItems={[
-          { label: 'Home', to: '/admin' },
-          { label: 'Mi perfil', to: '/perfil' },
-          { label: 'Chat', to: '/chat' },
-        ]}
-        onLogout={handleLogout}
-        variant="gradient"
-      />
-
-      <main className="w-full flex-1 space-y-8 px-4 py-8 sm:px-6 lg:px-8">
+    <main className="relative w-full flex-1 space-y-8">
+      {refreshing && (
+        <div className="fixed inset-x-0 top-0 z-50 flex justify-center px-4 pt-4">
+          <div className="inline-flex items-center gap-3 rounded-full border border-[#ece8f6] bg-white/95 px-4 py-2 text-sm font-medium text-slate-700 shadow-lg backdrop-blur">
+            <span className="h-3 w-3 animate-pulse rounded-full bg-[#9d31ff]" />
+            Actualizando panel...
+          </div>
+        </div>
+      )}
         {loadError && (
           <section className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             {loadError}
@@ -708,7 +789,7 @@ export default function AdminDashboard() {
                         ) : (
                           <select
                             value={user.role}
-                            onChange={(e) => handleChangeRole(user.id, user.email, user.full_name, e.target.value)}
+                            onChange={(e) => handleChangeRole(user, e.target.value)}
                             className="rounded border px-2 py-1 text-sm"
                           >
                             <option value="student">Estudiante</option>
@@ -886,6 +967,5 @@ export default function AdminDashboard() {
           </div>
         )}
       </main>
-    </div>
   )
 }

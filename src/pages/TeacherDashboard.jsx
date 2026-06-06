@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Search, Users, BookOpen, GraduationCap, Pencil, Trash2, RefreshCw } from 'lucide-react'
-import DashboardHeader from '../components/layout/DashboardHeader'
 import UserModal from '../components/dashboard/UserModal'
 import CourseModal from '../components/dashboard/CourseModal'
 import EnrollmentModal from '../components/dashboard/EnrollmentModal'
@@ -513,36 +512,35 @@ export default function TeacherDashboard() {
 
   if (initialLoading) {
     return (
-      <div className="flex min-h-screen w-full flex-col bg-[#f8faff]">
-        <DashboardHeader
-          subtitle={profile?.full_name || profile?.email}
-          userLabel={profile?.full_name || profile?.email || 'Profesor'}
-          navItems={navItems}
-          onLogout={handleLogout}
-          variant="gradient"
-          showSubtitle={false}
-        />
-        <div className="flex min-h-[70svh] items-center justify-center px-4">
-          <div className="rounded-3xl border border-[#ece8f6] bg-white px-6 py-5 text-sm text-slate-600 shadow-2xl">
-            Cargando panel docente...
+      <main className="w-full flex-1 space-y-8">
+        <section className="rounded-[2rem] border border-[#ece8f6] bg-white p-6 shadow-2xl">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-2">
+              <div className="h-6 w-56 animate-pulse rounded-full bg-[#f1ecfb]" />
+              <div className="h-4 w-80 animate-pulse rounded-full bg-[#f7f4fe]" />
+            </div>
+            <div className="h-11 w-28 animate-pulse rounded-2xl bg-[#f1ecfb]" />
           </div>
-        </div>
-      </div>
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
+            {[...Array(3)].map((_, index) => (
+              <div key={index} className="rounded-3xl border border-[#ece8f6] bg-[#fafaff] p-5">
+                <div className="h-3 w-20 animate-pulse rounded-full bg-[#eee6fb]" />
+                <div className="mt-4 h-8 w-16 animate-pulse rounded-full bg-[#eee6fb]" />
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="rounded-[2rem] border border-[#ece8f6] bg-white p-6 shadow-2xl">
+          <div className="h-5 w-40 animate-pulse rounded-full bg-[#f1ecfb]" />
+          <div className="mt-4 h-64 animate-pulse rounded-[1.5rem] bg-[#faf8ff]" />
+        </section>
+      </main>
     )
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-[#f8faff] text-slate-900">
-      <DashboardHeader
-        subtitle={profile?.full_name || profile?.email}
-        userLabel={profile?.full_name || profile?.email || 'Profesor'}
-        navItems={navItems}
-        onLogout={handleLogout}
-        variant="gradient"
-        showSubtitle={false}
-      />
-
-      <main className="flex w-full flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+    <main className="flex w-full flex-1 flex-col gap-6">
         <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
           <div className="overflow-hidden rounded-[2rem] border border-[#ece8f6] bg-white shadow-2xl">
             <div className="flex flex-col gap-3 border-b border-[#ece8f6] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
@@ -772,7 +770,6 @@ export default function TeacherDashboard() {
             </table>
           </div>
         </section>
-      </main>
 
       <UserModal
         open={showStudentModal}
@@ -827,6 +824,6 @@ export default function TeacherDashboard() {
         }}
         submitting={savingEnrollment}
       />
-    </div>
+</main>
   )
 }

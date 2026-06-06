@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronLeft, History, PanelRightOpen, Settings2, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import DashboardHeader from '../components/layout/DashboardHeader'
 import ChatComposer from '../components/chat/ChatComposer'
 import ChatMessageBubble from '../components/chat/ChatMessageBubble'
 import ChatSettingsPanel from '../components/chat/ChatSettingsPanel'
@@ -46,7 +45,7 @@ export default function ChatPage() {
   const [activeThreadId, setActiveThreadId] = useState(null)
   const [messages, setMessages] = useState([])
   const [settings, setSettings] = useState(() => buildDefaultChatSettings(role))
-  const [loading, setLoading] = useState(true)
+  const [initialLoading, setInitialLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
   const [historyOpen, setHistoryOpen] = useState(false)
@@ -56,11 +55,11 @@ export default function ChatPage() {
     const loadChat = async () => {
       // Sin token no tenemos nada que cargar desde el backend.
       if (!session?.access_token) {
-        setLoading(false)
+        setInitialLoading(false)
         return
       }
 
-      setLoading(true)
+      setInitialLoading(true)
       setError('')
 
       try {
@@ -72,7 +71,7 @@ export default function ChatPage() {
       } catch (chatError) {
         setError(chatError?.message || 'No se pudo cargar el historial del chat.')
       } finally {
-        setLoading(false)
+        setInitialLoading(false)
       }
     }
 
@@ -143,51 +142,46 @@ export default function ChatPage() {
     }
   }
 
-  const navItems = [
-    { label: 'Inicio', to: `/${role || 'login'}` },
-    { label: 'Mi perfil', to: '/perfil' },
-    { label: 'Chat', to: '/chat' },
-  ]
-
   // Cambiamos el titulo segun haya o no mensajes visibles.
   const chatHeader = messages.length > 0 ? 'Conversacion activa' : 'Tu chat esta listo'
   const emptyStateText = roleProfile.welcomeText || 'Escribe una pregunta para iniciar una nueva conversacion.'
   const actionGradient = 'from-[#9d31ff] to-[#ff318c]'
 
-  if (loading) {
+  if (initialLoading) {
     return (
-      <div className="h-screen overflow-hidden bg-[#f8faff] text-slate-900">
-        <DashboardHeader
-          subtitle={profile?.full_name || profile?.email}
-          userLabel={roleProfile.label}
-          navItems={navItems}
-          onLogout={handleLogout}
-          variant="gradient"
-          showSubtitle={false}
-        />
-        <div className="flex h-[calc(100svh-64px)] items-center justify-center p-6">
-          <div className="rounded-3xl border border-[#ece8f6] bg-white px-6 py-5 text-sm text-slate-700 shadow-2xl">
-            Cargando tu espacio de chat...
-          </div>
-        </div>
+      <div className="relative min-h-[calc(100svh-64px)] overflow-hidden bg-[#f8faff] text-slate-900">
+        <div className="absolute left-1/4 top-16 h-72 w-72 rounded-full bg-[#9d31ff]/20 blur-3xl" />
+        <div className="absolute right-1/4 top-24 h-72 w-72 rounded-full bg-[#ff318c]/20 blur-3xl" />
+        <div className="absolute bottom-0 left-0 h-80 w-80 rounded-full bg-[#9d31ff]/10 blur-3xl" />
+        <main className="relative h-[calc(100svh-64px)] w-full overflow-hidden px-3 py-3 sm:px-4 lg:px-6">
+          <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[2rem] border border-[#ece8f6] bg-white shadow-2xl">
+            <div className="flex items-center justify-between gap-2 border-b border-[#ece8f6] px-2 py-1 sm:px-3 sm:py-1">
+              <div className="space-y-2">
+                <div className="h-3 w-36 animate-pulse rounded-full bg-[#f1ecfb]" />
+                <div className="h-2 w-24 animate-pulse rounded-full bg-[#f7f4fe]" />
+              </div>
+              <div className="flex gap-2">
+                <div className="h-8 w-24 animate-pulse rounded-2xl bg-[#f1ecfb]" />
+                <div className="h-8 w-24 animate-pulse rounded-2xl bg-[#f1ecfb]" />
+                <div className="h-8 w-28 animate-pulse rounded-2xl bg-[#f1ecfb]" />
+              </div>
+            </div>
+            <div className="flex min-h-0 flex-1 flex-col p-4 sm:p-6">
+              <div className="mb-4 h-24 animate-pulse rounded-[2rem] bg-[#faf8ff]" />
+              <div className="flex-1 rounded-[2rem] bg-[#f8faff]" />
+              <div className="mt-4 h-16 animate-pulse rounded-[1.5rem] bg-[#faf8ff]" />
+            </div>
+          </section>
+        </main>
       </div>
     )
   }
 
   return (
-    <div className="h-screen overflow-hidden bg-[#f8faff] text-slate-900">
+    <div className="relative min-h-[calc(100svh-64px)] overflow-hidden bg-[#f8faff] text-slate-900">
       <div className="absolute left-1/4 top-16 h-72 w-72 rounded-full bg-[#9d31ff]/20 blur-3xl" />
       <div className="absolute right-1/4 top-24 h-72 w-72 rounded-full bg-[#ff318c]/20 blur-3xl" />
       <div className="absolute bottom-0 left-0 h-80 w-80 rounded-full bg-[#9d31ff]/10 blur-3xl" />
-
-      <DashboardHeader
-        subtitle={profile?.full_name || profile?.email}
-        userLabel={roleProfile.label}
-        navItems={navItems}
-        onLogout={handleLogout}
-        variant="gradient"
-        showSubtitle={false}
-      />
 
       {/* Contenedor principal de la experiencia de chat. */}
       <main className="relative h-[calc(100svh-64px)] w-full overflow-hidden px-3 py-3 sm:px-4 lg:px-6">
