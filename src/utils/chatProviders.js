@@ -17,7 +17,7 @@ const CHAT_PROVIDER_DEFINITIONS = [
     defaultUrl: 'https://api.cerebras.ai/v1/chat/completions',
     apiKeyEnvNames: ['CEREBRAS_API_KEY'],
     modelEnvName: 'CHAT_MODEL',
-    defaultModel: 'llama3.1-8b',
+    defaultModel: 'gpt-oss-120b',
   },
 ]
 

@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 import DashboardHeader from './DashboardHeader'
 import { useAuth } from '../../contexts/AuthContext'
 
@@ -28,6 +28,9 @@ const roleLabel = {
 
 export default function ProtectedLayout() {
   const { profile, role, logout } = useAuth()
+  const { pathname } = useLocation()
+  const isChat = pathname === '/chat'
+
   const navItems = navItemsByRole[role] || [
     { label: 'Inicio', to: '/' },
     { label: 'Mi perfil', to: '/perfil' },
@@ -35,7 +38,7 @@ export default function ProtectedLayout() {
   ]
 
   return (
-    <div className="min-h-screen w-full bg-[#f8faff] text-slate-900">
+    <div className="flex flex-col min-h-screen w-full bg-[#f8faff] text-slate-900">
       <DashboardHeader
         subtitle={profile?.full_name || profile?.email}
         userName={profile?.full_name || profile?.email}
@@ -45,7 +48,7 @@ export default function ProtectedLayout() {
         variant="gradient"
         showSubtitle={false}
       />
-      <main className="flex w-full flex-1 flex-col px-4 py-6 sm:px-6 lg:px-8">
+      <main className={`flex w-full flex-1 flex-col ${isChat ? 'p-0 overflow-hidden' : 'px-4 py-6 sm:px-6 lg:px-8'}`} style={isChat ? { height: 'calc(100dvh - 64px)' } : undefined}>
         <Outlet />
       </main>
     </div>

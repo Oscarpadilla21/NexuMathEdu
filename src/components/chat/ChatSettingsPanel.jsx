@@ -1,4 +1,4 @@
-import { Sparkles, Settings2 } from 'lucide-react'
+import { Sparkles, Settings2, Save } from 'lucide-react'
 import {
   getChatDetailLevels,
   getChatProviderOptions,
@@ -12,37 +12,43 @@ export default function ChatSettingsPanel({
   settings,
   onChange,
   onReset,
+  onSave,
+  saveMessage = '',
   disabled = false,
   profileAccent = 'from-violet-500 to-fuchsia-500',
+  isSidebar = false,
 }) {
   const roleProfile = getChatRoleProfile(role)
   const selectedProvider = normalizeChatProvider(settings.provider)
 
   return (
-    <section className="flex h-full flex-col rounded-3xl border border-[#e5e4e7] bg-white p-4 shadow-2xl">
-      <div className="flex items-start justify-between gap-4 border-b border-[#ece8f6] pb-4">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#9d31ff]">Configuracion</p>
-          <h2 className="mt-2 text-xl font-semibold text-slate-900">Ajustes del chat</h2>
-          <p className="mt-1 text-sm text-slate-500">{roleProfile.label}</p>
+    <section className={`flex h-full flex-col ${isSidebar ? 'border-[#ece8f6] bg-slate-50/50 p-4' : 'rounded-3xl border border-[#e5e4e7] bg-white p-4 shadow-2xl'}`}>
+      {!isSidebar && (
+        <div className="flex items-start justify-between gap-4 border-b border-[#ece8f6] pb-4">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#9d31ff]">Configuracion</p>
+            <h2 className="mt-2 text-xl font-semibold text-slate-900">Ajustes del chat</h2>
+            <p className="mt-1 text-sm text-slate-500">{roleProfile.label}</p>
+          </div>
+          <div className={`flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br ${profileAccent} shadow-lg`}>
+            <Settings2 className="h-5 w-5 text-white" />
+          </div>
         </div>
-        <div className={`flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br ${profileAccent} shadow-lg`}>
-          <Settings2 className="h-5 w-5 text-white" />
-        </div>
-      </div>
+      )}
 
-      <div className="mt-4 rounded-2xl border border-[#ece8f6] bg-[#f8faff] px-4 py-4 text-sm text-slate-700">
-        <div className="flex items-center gap-2 font-semibold">
-          <Sparkles className="h-4 w-4" />
-          Perfil del chat
+      {!isSidebar && (
+        <div className="mt-4 rounded-2xl border border-[#ece8f6] bg-[#f8faff] px-4 py-4 text-sm text-slate-700">
+          <div className="flex items-center gap-2 font-semibold">
+            <Sparkles className="h-4 w-4" />
+            Perfil del chat
+          </div>
+          <p className="mt-2 leading-6">{roleProfile.welcomeText}</p>
         </div>
-        <p className="mt-2 leading-6">{roleProfile.welcomeText}</p>
-      </div>
+      )}
 
       {disabled && (
-        <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm leading-6 text-amber-900">
-          Este chat ya tiene mensajes. La configuracion queda bloqueada para conservar el contexto.
-          Para cambiar proveedor o tema, crea un chat nuevo.
+        <div className="mt-2 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs leading-5 text-amber-900">
+          Este chat ya tiene mensajes. Ajustes bloqueados.
         </div>
       )}
 
@@ -133,9 +139,23 @@ export default function ChatSettingsPanel({
 
       <button
         type="button"
+        onClick={onSave}
+        disabled={disabled}
+        className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#9d31ff] to-[#ff318c] px-4 py-3 text-sm font-semibold text-white shadow-md transition hover:brightness-110 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <Save className="h-4 w-4" />
+        {disabled ? 'Configuracion bloqueada' : 'Guardar configuracion'}
+      </button>
+
+      {saveMessage && (
+        <p className="mt-1.5 text-center text-xs font-medium text-emerald-600">{saveMessage}</p>
+      )}
+
+      <button
+        type="button"
         onClick={onReset}
         disabled={disabled}
-        className="mt-4 rounded-2xl border border-[#e5e4e7] bg-white px-4 py-3 text-sm font-semibold text-slate-800 transition hover:border-[#9d31ff]/30 hover:bg-[#f8faff] disabled:cursor-not-allowed disabled:opacity-50"
+        className="mt-2 rounded-2xl border border-[#e5e4e7] bg-white px-4 py-3 text-sm font-semibold text-slate-800 transition hover:border-[#9d31ff]/30 hover:bg-[#f8faff] disabled:cursor-not-allowed disabled:opacity-50"
       >
         {disabled ? 'Configuracion bloqueada' : 'Restablecer ajustes'}
       </button>
