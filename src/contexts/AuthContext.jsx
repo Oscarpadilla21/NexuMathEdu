@@ -114,6 +114,14 @@ export const AuthProvider = ({ children }) => {
     return fallbackProfile
   }
 
+  const refreshProfile = async () => {
+    if (!user?.id) {
+      return null
+    }
+
+    return fetchProfile(user)
+  }
+
   useEffect(() => {
     let isMounted = true
     recordActivity()
@@ -281,6 +289,7 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     updatePassword,
+    refreshProfile,
     isAuthenticated: !!user,
     role: profile?.role || null,
     hasProfile: !!profile,

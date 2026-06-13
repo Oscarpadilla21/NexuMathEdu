@@ -2,6 +2,8 @@ import { useMemo, useState, useEffect } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
+import { getChatProviderLabel, getChatProviderOptions, normalizeChatProvider } from '../utils/chatPresets'
 
 const roleLabels = {
   admin: 'Administrador',
@@ -10,7 +12,7 @@ const roleLabels = {
 }
 
 export default function ProfilePage() {
-  const { profile, user, logout, role, login, updatePassword, isAuthenticated } = useAuth()
+  const { profile, user, logout, role, login, updatePassword, refreshProfile, isAuthenticated } = useAuth()
   const navigate = useNavigate()
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -21,6 +23,7 @@ export default function ProfilePage() {
   const [statusMessage, setStatusMessage] = useState(null)
   const [statusType, setStatusType] = useState('')
   const [isChangingPassword, setIsChangingPassword] = useState(false)
+  const [isSavingChatProvider, setIsSavingChatProvider] = useState(false)
 
   // Si la sesión se cierra, redirigimos automáticamente.
   useEffect(() => {
@@ -98,6 +101,33 @@ export default function ProfilePage() {
   const resolvedName = profile?.full_name || user?.user_metadata?.full_name || resolvedEmail
   const resolvedRole = role || user?.user_metadata?.role || user?.app_metadata?.role || null
   const roleLabel = roleLabels[resolvedRole] || 'Usuario'
+  const selectedChatProvider = normalizeChatProvider(profile?.chat_provider)
+
+  const handleChatProviderChange = async (provider) => {
+    if (!profile?.id) return
+
+    setIsSavingChatProvider(true)
+    setStatusMessage(null)
+    setStatusType('')
+
+    try {
+      const { error } = await supabase.from('profiles').update({ chat_provider: provider }).eq('id', profile.id)
+
+      if (error) {
+        throw error
+      }
+
+      await refreshProfile()
+      setStatusMessage(`Proveedor del chat actualizado a ${getChatProviderLabel(provider)}.`)
+      setStatusType('success')
+    } catch (error) {
+      console.error('Chat provider update failed', error)
+      setStatusMessage(error?.message || 'No se pudo guardar la configuracion del chat.')
+      setStatusType('error')
+    } finally {
+      setIsSavingChatProvider(false)
+    }
+  }
 
   return (
     <div className="min-h-[calc(100svh-64px)] bg-slate-50">
@@ -250,6 +280,43 @@ export default function ProfilePage() {
                     {isChangingPassword ? 'Actualizando...' : 'Guardar contraseña'}
                   </button>
                 </form>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">ConfiguraciÃ³n del chat</p>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Elige con quÃ© proveedor se responderÃ¡ tu chat.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-5 space-y-3">
+                  <label className="block">
+                    <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                      Proveedor
+                    </span>
+                    <select
+                      value={selectedChatProvider}
+                      onChange={(e) => void handleChatProviderChange(e.target.value)}
+                      disabled={isSavingChatProvider}
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:opacity-70"
+                    >
+                      {getChatProviderOptions().map((provider) => (
+                        <option key={provider.value} value={provider.value}>
+                          {provider.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <p className="text-sm leading-6 text-slate-600">
+                    {selectedChatProvider === 'profesor_2'
+                      ? 'EstÃ¡ usando Profesor 2 para las respuestas del chat.'
+                      : 'EstÃ¡ usando Profesor 1 para las respuestas del chat.'}
+                  </p>
+                </div>
               </div>
 
               <div className="rounded-2xl border border-slate-200 bg-white p-5">

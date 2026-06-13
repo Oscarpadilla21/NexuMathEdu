@@ -38,6 +38,7 @@ export default function ProtectedLayout() {
     <div className="min-h-screen w-full bg-[#f8faff] text-slate-900">
       <DashboardHeader
         subtitle={profile?.full_name || profile?.email}
+        userName={profile?.full_name || profile?.email}
         userLabel={roleLabel[role] || 'Usuario'}
         navItems={navItems}
         onLogout={logout}

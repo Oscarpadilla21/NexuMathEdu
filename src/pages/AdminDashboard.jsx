@@ -422,9 +422,20 @@ export default function AdminDashboard() {
     }
 
     if (window.confirm(`Delete user ${userEmail}?`)) {
-      await supabase.from('profiles').delete().eq('id', userId)
-      alert('User deleted')
-      await fetchData()
+      try {
+        const { data, error } = await supabase.functions.invoke('delete-user', {
+          body: { user_id: userId },
+        })
+
+        if (error) {
+          throw new Error(data?.error || error.message || 'No se pudo eliminar el usuario')
+        }
+
+        alert(data?.message || 'User deleted')
+        await fetchData()
+      } catch (deleteError) {
+        alert(`Error al eliminar usuario: ${deleteError?.message || 'No se pudo completar la eliminacion'}`)
+      }
     }
   }
 

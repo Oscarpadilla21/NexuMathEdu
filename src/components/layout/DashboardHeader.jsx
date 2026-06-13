@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom'
 
 export default function DashboardHeader({
   subtitle,
+  userName,
   userLabel,
   navItems = [],
   onLogout,
@@ -92,8 +93,8 @@ export default function DashboardHeader({
             <div className={`mt-4 border-t px-2 pb-2 pt-4 ${variant === 'gradient' ? 'border-slate-200' : 'border-white/10'}`}>
               <div className="flex items-center justify-between">
                 <div className="flex flex-col">
-                  <span className={`text-[10px] font-bold uppercase tracking-wider ${variant === 'gradient' ? 'text-slate-500' : 'text-slate-500'}`}>Usuario</span>
-                  <span className={`text-sm font-medium ${variant === 'gradient' ? 'text-slate-800' : 'text-slate-200'}`}>{userLabel || 'Invitado'}</span>
+                  <span className={`text-sm font-semibold ${variant === 'gradient' ? 'text-slate-800' : 'text-slate-200'}`}>{userName || 'Usuario'}</span>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${variant === 'gradient' ? 'text-slate-500' : 'text-slate-400'}`}>{userLabel || 'Invitado'}</span>
                 </div>
                 {onLogout && (
                   <button

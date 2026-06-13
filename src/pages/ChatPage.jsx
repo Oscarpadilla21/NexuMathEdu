@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronLeft, History, PanelRightOpen, Settings2, X } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
 import ChatComposer from '../components/chat/ChatComposer'
 import ChatMessageBubble from '../components/chat/ChatMessageBubble'
 import ChatSettingsPanel from '../components/chat/ChatSettingsPanel'
@@ -35,8 +34,7 @@ function Modal({ open, title, onClose, children, widthClass = 'max-w-2xl' }) {
 }
 
 export default function ChatPage() {
-  const { profile, role, session, logout } = useAuth()
-  const navigate = useNavigate()
+  const { profile, role, session } = useAuth()
   const bottomRef = useRef(null)
   const roleProfile = useMemo(() => getChatRoleProfile(role), [role])
 
@@ -68,6 +66,7 @@ export default function ChatPage() {
         setThreads(data?.threads || [])
         setActiveThreadId(data?.active_thread_id || null)
         setMessages(data?.messages || [])
+        setSettings(data?.active_thread_settings || buildDefaultChatSettings(role, profile?.chat_provider))
       } catch (chatError) {
         setError(chatError?.message || 'No se pudo cargar el historial del chat.')
       } finally {
@@ -76,18 +75,18 @@ export default function ChatPage() {
     }
 
     void loadChat()
-  }, [session?.access_token])
+  }, [session?.access_token, role, profile?.chat_provider])
 
   useEffect(() => {
     // Cuando llegan mensajes nuevos, llevamos la vista al final del hilo.
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
   }, [messages, activeThreadId])
 
-  const handleLogout = async () => {
-    await logout()
-  }
-
   const handleUpdateSettings = (partial) => {
+    if (messages.length > 0) {
+      return
+    }
+
     // Mezclamos solo la parte modificada para no perder el resto de ajustes.
     setSettings((current) => ({ ...current, ...partial }))
   }
@@ -104,16 +103,18 @@ export default function ChatPage() {
       setThreads(data?.threads || [])
       setActiveThreadId(data?.active_thread_id || threadId)
       setMessages(data?.messages || [])
+      setSettings(data?.active_thread_settings || buildDefaultChatSettings(role, profile?.chat_provider))
     } catch (chatError) {
       setError(chatError?.message || 'No se pudo abrir esa conversacion.')
     }
   }
 
   const handleNewThread = () => {
-    // Reiniciamos el estado local para arrancar una charla nueva.
+    // Reiniciamos el estado local para arrancar una charla nueva, pero conservamos la configuracion elegida.
     setActiveThreadId(null)
     setMessages([])
     setHistoryOpen(false)
+    setError('')
   }
 
   const handleSendMessage = async (content) => {
@@ -134,6 +135,7 @@ export default function ChatPage() {
       setThreads(data?.threads || [])
       setActiveThreadId(data?.thread_id || activeThreadId)
       setMessages(data?.messages || [])
+      setSettings(data?.active_thread_settings || settings)
       setHistoryOpen(false)
     } catch (chatError) {
       setError(chatError?.message || 'No se pudo enviar el mensaje.')
@@ -146,6 +148,8 @@ export default function ChatPage() {
   const chatHeader = messages.length > 0 ? 'Conversacion activa' : 'Tu chat esta listo'
   const emptyStateText = roleProfile.welcomeText || 'Escribe una pregunta para iniciar una nueva conversacion.'
   const actionGradient = 'from-[#9d31ff] to-[#ff318c]'
+  const isSettingsLocked = messages.length > 0
+  const defaultChatSettings = buildDefaultChatSettings(role, profile?.chat_provider)
 
   if (initialLoading) {
     return (
@@ -286,8 +290,9 @@ export default function ChatPage() {
           role={role}
           settings={settings}
           onChange={handleUpdateSettings}
-          onReset={() => setSettings(buildDefaultChatSettings(role))}
+          onReset={() => setSettings(defaultChatSettings)}
           profileAccent={roleProfile.accent}
+          disabled={isSettingsLocked}
         />
       </Modal>
     </div>

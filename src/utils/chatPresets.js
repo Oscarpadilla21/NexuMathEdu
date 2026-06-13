@@ -1,3 +1,7 @@
+import { getChatProviderLabel, getChatProviderOptions, normalizeChatProvider } from './chatProviders'
+
+export { getChatProviderLabel, getChatProviderOptions, normalizeChatProvider }
+
 // Perfiles visuales y de contenido para adaptar el chat segun el rol.
 const ROLE_PROFILES = {
   admin: {
@@ -48,7 +52,7 @@ export function getChatDetailLevels() {
   return DEFAULT_DETAIL_LEVELS
 }
 
-export function buildDefaultChatSettings(role) {
+export function buildDefaultChatSettings(role, provider = 'profesor_1') {
   const profile = getChatRoleProfile(role)
 
   // Estado inicial que se usa al abrir el chat o al restablecer ajustes.
@@ -57,6 +61,7 @@ export function buildDefaultChatSettings(role) {
     detailLevel: 'medio',
     focus: profile.defaultFocus,
     language: 'espanol',
+    provider: normalizeChatProvider(provider),
   }
 }
 
