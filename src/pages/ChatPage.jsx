@@ -30,6 +30,35 @@ export default function ChatPage() {
   const isDesktop = () => window.innerWidth >= 1024
   const [leftOpen, setLeftOpen] = useState(isDesktop)
   const [rightOpen, setRightOpen] = useState(isDesktop)
+  const canAuditOthers = role === 'admin' || role === 'teacher'
+  const [viewingUserId, setViewingUserId] = useState(null)
+  const [chatUsers, setChatUsers] = useState([])
+
+  const auditUserId =
+    canAuditOthers && viewingUserId && viewingUserId !== profile?.id ? viewingUserId : null
+  const isReadOnlyAudit = Boolean(auditUserId)
+  const chatUserFilter = auditUserId || undefined
+
+  const formatChatUserLabel = (user) => {
+    const name = user.full_name || user.email || 'Usuario'
+    const roleLabels = { admin: 'Admin', teacher: 'Profesor', student: 'Estudiante' }
+    return `${name} (${roleLabels[user.role] || user.role})`
+  }
+
+  const userFilterConfig = canAuditOthers
+    ? {
+        label: role === 'teacher' ? 'Ver historial del estudiante' : 'Ver historial de',
+        ownLabel: 'Mis conversaciones',
+        value: viewingUserId,
+        options: chatUsers.map((user) => ({ id: user.id, label: formatChatUserLabel(user) })),
+        onChange: (nextUserId) => {
+          setViewingUserId(nextUserId)
+          setActiveThreadId(null)
+          setMessages([])
+          setError('')
+        },
+      }
+    : null
 
   // En resize, si pasamos a escritorio abrimos ambos paneles.
   useEffect(() => {
@@ -57,10 +86,14 @@ export default function ChatPage() {
       setInitialLoading(true)
       setError('')
       try {
-        const data = await fetchChatState({ accessToken: session.access_token })
+        const data = await fetchChatState({
+          accessToken: session.access_token,
+          userId: chatUserFilter,
+        })
         setThreads(data?.threads || [])
         setActiveThreadId(data?.active_thread_id || null)
         setMessages(data?.messages || [])
+        setChatUsers(data?.visible_users || [])
         setSettings(data?.active_thread_settings || buildDefaultChatSettings(role, profile?.chat_provider))
       } catch (err) {
         setError(err?.message || 'No se pudo cargar el historial del chat.')
@@ -69,7 +102,7 @@ export default function ChatPage() {
       }
     }
     void loadChat()
-  }, [session?.access_token, role, profile?.chat_provider])
+  }, [session?.access_token, role, profile?.chat_provider, profile?.id, chatUserFilter])
 
   // Scroll automático al último mensaje.
   useEffect(() => {
@@ -107,10 +140,15 @@ export default function ChatPage() {
     // En móvil cerramos el drawer al seleccionar un hilo.
     if (!isDesktop()) setLeftOpen(false)
     try {
-      const data = await fetchChatState({ accessToken: session.access_token, threadId })
+      const data = await fetchChatState({
+        accessToken: session.access_token,
+        threadId,
+        userId: chatUserFilter,
+      })
       setThreads(data?.threads || [])
       setActiveThreadId(data?.active_thread_id || threadId)
       setMessages(data?.messages || [])
+      setChatUsers(data?.visible_users || chatUsers)
       setSettings(data?.active_thread_settings || buildDefaultChatSettings(role, profile?.chat_provider))
     } catch (err) {
       setError(err?.message || 'No se pudo abrir esa conversación.')
@@ -126,7 +164,7 @@ export default function ChatPage() {
   }
 
   const handleSendMessage = async (content) => {
-    if (!session?.access_token) return
+    if (!session?.access_token || isReadOnlyAudit) return
     setSending(true)
     setError('')
     try {
@@ -147,8 +185,12 @@ export default function ChatPage() {
     }
   }
 
-  const emptyStateText = roleProfile.welcomeText || 'Escribe una pregunta para iniciar una nueva conversación.'
-  const isSettingsLocked = messages.length > 0 || settingsSaved
+  const emptyStateText = isReadOnlyAudit
+    ? role === 'teacher'
+      ? 'Selecciona una conversación del historial de este estudiante.'
+      : 'Selecciona una conversación del historial de este usuario.'
+    : roleProfile.welcomeText || 'Escribe una pregunta para iniciar una nueva conversación.'
+  const isSettingsLocked = messages.length > 0 || settingsSaved || isReadOnlyAudit
   const defaultChatSettings = buildDefaultChatSettings(role, profile?.chat_provider)
 
   // ── Loading skeleton ────────────────────────────────────────────────────────
@@ -206,6 +248,8 @@ export default function ChatPage() {
           profileText={roleProfile.welcomeText}
           profileAccent={roleProfile.accent}
           isSidebar={true}
+          readOnly={isReadOnlyAudit}
+          userFilter={userFilterConfig}
         />
       </aside>
 
@@ -225,6 +269,8 @@ export default function ChatPage() {
           profileText={roleProfile.welcomeText}
           profileAccent={roleProfile.accent}
           isSidebar={true}
+          readOnly={isReadOnlyAudit}
+          userFilter={userFilterConfig}
         />
       </div>
 
@@ -242,7 +288,7 @@ export default function ChatPage() {
               <History className="h-4 w-4" />
             </button>
             <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 sm:text-xs">
-              {roleProfile.label}
+              {isReadOnlyAudit ? 'Auditoría de chat' : roleProfile.label}
             </span>
           </div>
 
@@ -260,6 +306,14 @@ export default function ChatPage() {
         {error && (
           <div className="mx-3 mt-2 flex-shrink-0 rounded-xl border border-[#ffd4e7] bg-[#fff5fb] px-3 py-2 text-xs font-medium text-[#9d31ff]">
             {error}
+          </div>
+        )}
+
+        {isReadOnlyAudit && (
+          <div className="mx-3 mt-2 flex-shrink-0 rounded-xl border border-[#ece8f6] bg-[#f8faff] px-3 py-2 text-xs font-medium text-slate-600">
+            {role === 'teacher'
+              ? 'Modo solo lectura: estás revisando el historial de un estudiante.'
+              : 'Modo solo lectura: estás revisando el historial de otro usuario.'}
           </div>
         )}
 
@@ -284,7 +338,13 @@ export default function ChatPage() {
                   <PanelRightOpen className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-800 sm:text-base">{roleProfile.welcomeTitle}</h3>
+                  <h3 className="text-sm font-semibold text-slate-800 sm:text-base">
+                    {isReadOnlyAudit
+                      ? role === 'teacher'
+                        ? 'Historial del estudiante'
+                        : 'Historial del usuario'
+                      : roleProfile.welcomeTitle}
+                  </h3>
                   <p className="mt-1 text-xs leading-5 text-slate-500">{emptyStateText}</p>
                 </div>
               </div>
@@ -295,12 +355,20 @@ export default function ChatPage() {
 
         {/* ── Composer fijo en la parte inferior ───────────────────────── */}
         <div className="flex-shrink-0 border-t border-[#e5e4e7] bg-white/95 backdrop-blur-sm">
-          <ChatComposer
-            onSend={handleSendMessage}
-            placeholder={`Pregunta como ${roleProfile.label.toLowerCase()}...`}
-            disabled={sending || !session?.access_token}
-            sending={sending}
-          />
+          {isReadOnlyAudit ? (
+            <div className="px-4 py-3 text-center text-xs text-slate-500">
+              {role === 'teacher'
+                ? 'No puedes enviar mensajes mientras revisas el historial de un estudiante.'
+                : 'No puedes enviar mensajes mientras revisas el historial de otro usuario.'}
+            </div>
+          ) : (
+            <ChatComposer
+              onSend={handleSendMessage}
+              placeholder={`Pregunta como ${roleProfile.label.toLowerCase()}...`}
+              disabled={sending || !session?.access_token}
+              sending={sending}
+            />
+          )}
         </div>
       </section>
 

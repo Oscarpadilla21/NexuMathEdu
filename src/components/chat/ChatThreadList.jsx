@@ -10,6 +10,8 @@ export default function ChatThreadList({
   profileText,
   profileAccent = 'from-violet-500 to-fuchsia-500',
   isSidebar = false,
+  readOnly = false,
+  userFilter = null,
 }) {
   return (
     <section className={`flex h-full flex-col ${isSidebar ? 'border-[#ece8f6] bg-slate-50/50 p-4' : 'rounded-3xl border border-[#e5e4e7] bg-white p-4 shadow-2xl'}`}>
@@ -34,18 +36,40 @@ export default function ChatThreadList({
         </p>
       )}
 
-      <button
-        type="button"
-        onClick={onNewThread}
-        className={`mt-2 inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition-all ${
-          isSidebar
-            ? 'bg-gradient-to-r from-[#9d31ff] to-[#ff318c] text-white shadow-md hover:brightness-110 hover:shadow-lg'
-            : 'border border-[#9d31ff]/15 bg-[#f8faff] text-[#9d31ff] hover:border-[#9d31ff]/30 hover:bg-[#fff5fb]'
-        }`}
-      >
-        <Plus className="h-4 w-4" />
-        Nuevo chat
-      </button>
+      {userFilter && (
+        <div className="mt-2">
+          <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            {userFilter.label || 'Usuario'}
+          </label>
+          <select
+            value={userFilter.value || ''}
+            onChange={(event) => userFilter.onChange?.(event.target.value || null)}
+            className="w-full rounded-xl border border-[#ece8f6] bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-[#9d31ff]/40"
+          >
+            <option value="">{userFilter.ownLabel || 'Mis conversaciones'}</option>
+            {userFilter.options.map((user) => (
+              <option key={user.id} value={user.id}>
+                {user.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {!readOnly && (
+        <button
+          type="button"
+          onClick={onNewThread}
+          className={`mt-2 inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition-all ${
+            isSidebar
+              ? 'bg-gradient-to-r from-[#9d31ff] to-[#ff318c] text-white shadow-md hover:brightness-110 hover:shadow-lg'
+              : 'border border-[#9d31ff]/15 bg-[#f8faff] text-[#9d31ff] hover:border-[#9d31ff]/30 hover:bg-[#fff5fb]'
+          }`}
+        >
+          <Plus className="h-4 w-4" />
+          Nuevo chat
+        </button>
+      )}
 
       {/* Lista de conversaciones; la actual queda resaltada. */}
       <div className="mt-4 flex-1 space-y-2 overflow-y-auto pr-1">
@@ -72,9 +96,8 @@ export default function ChatThreadList({
             )
           })
         ) : (
-          // Estado vacio cuando todavia no existe ningun hilo guardado.
           <div className="rounded-2xl border border-dashed border-[#e5e4e7] bg-[#fafafa] px-4 py-5 text-sm text-slate-500">
-            Todavía no hay conversaciones guardadas.
+            {readOnly ? 'Este usuario no tiene conversaciones guardadas.' : 'Todavía no hay conversaciones guardadas.'}
           </div>
         )}
       </div>

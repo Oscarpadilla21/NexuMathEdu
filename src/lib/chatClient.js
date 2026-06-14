@@ -31,8 +31,11 @@ async function requestChat(path, { accessToken, method = 'GET', body } = {}) {
   return payload
 }
 
-export function fetchChatState({ accessToken, threadId } = {}) {
-  const query = threadId ? `?thread_id=${encodeURIComponent(threadId)}` : ''
+export function fetchChatState({ accessToken, threadId, userId } = {}) {
+  const params = new URLSearchParams()
+  if (threadId) params.set('thread_id', threadId)
+  if (userId) params.set('user_id', userId)
+  const query = params.toString() ? `?${params.toString()}` : ''
   return requestChat(query, { accessToken, method: 'GET' })
 }
 

@@ -56,24 +56,24 @@ export default function DashboardHeader({
 
         {/* Panel flotante con enlaces y salida de sesion. */}
         <div
-          className={`absolute left-4 right-4 top-[72px] transition-all duration-300 ${
+          className={`absolute right-4 top-[72px] w-44 transition-all duration-300 sm:w-48 ${
             menuOpen ? 'translate-y-0 opacity-100' : '-translate-y-4 pointer-events-none opacity-0'
           }`}
         >
           <div
-            className={`rounded-2xl border p-3 shadow-2xl backdrop-blur-xl ${
+            className={`rounded-xl border p-2 shadow-2xl backdrop-blur-xl ${
               variant === 'gradient'
                 ? 'border-white/20 bg-white/95 text-slate-900'
                 : 'border-white/10 bg-slate-900/95 text-white'
             }`}
           >
-            <nav className="space-y-1">
+            <nav className="space-y-0.5">
               {navItems.map((item) => (
                 <NavLink
                   key={item.label}
                   to={item.to || item.href}
                   className={({ isActive }) =>
-                    `flex items-center rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
+                    `flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                       variant === 'gradient'
                         ? isActive
                           ? 'bg-[#9d31ff] text-white'
@@ -90,16 +90,16 @@ export default function DashboardHeader({
               ))}
             </nav>
 
-            <div className={`mt-4 border-t px-2 pb-2 pt-4 ${variant === 'gradient' ? 'border-slate-200' : 'border-white/10'}`}>
-              <div className="flex items-center justify-between">
-                <div className="flex flex-col">
-                  <span className={`text-sm font-semibold ${variant === 'gradient' ? 'text-slate-800' : 'text-slate-200'}`}>{userName || 'Usuario'}</span>
+            <div className={`mt-2 border-t px-1 pb-1 pt-2 ${variant === 'gradient' ? 'border-slate-200' : 'border-white/10'}`}>
+              <div className="flex flex-col gap-2">
+                <div className="min-w-0 px-1">
+                  <span className={`block truncate text-xs font-semibold ${variant === 'gradient' ? 'text-slate-800' : 'text-slate-200'}`}>{userName || 'Usuario'}</span>
                   <span className={`text-[10px] font-bold uppercase tracking-wider ${variant === 'gradient' ? 'text-slate-500' : 'text-slate-400'}`}>{userLabel || 'Invitado'}</span>
                 </div>
                 {onLogout && (
                   <button
                     onClick={onLogout}
-                    className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                    className={`w-full rounded-lg px-2 py-1.5 text-xs font-bold transition-all ${
                       variant === 'gradient'
                         ? 'bg-[#ff318c]/10 text-[#9d31ff] hover:bg-[#9d31ff] hover:text-white'
                         : 'bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white'
