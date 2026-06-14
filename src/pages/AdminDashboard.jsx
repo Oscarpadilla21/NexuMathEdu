@@ -123,11 +123,11 @@ export default function AdminDashboard() {
         { data: enrollmentsData },
         { data: gradesData },
       ] = await Promise.all([
-        withTimeout(supabase.functions.invoke('list-users'), 10000, 'User list request timed out'),
-        withTimeout(supabase.from('courses').select('*').order('created_at', { ascending: false }), 10000, 'Courses request timed out'),
-        withTimeout(supabase.from('profiles').select('*').order('created_at', { ascending: false }), 10000, 'Profiles request timed out'),
-        withTimeout(supabase.from('enrollments').select('course_id, student_id, enrolled_at').order('enrolled_at', { ascending: false }), 10000, 'Enrollments request timed out'),
-        withTimeout(supabase.from('course_grades').select('course_id, student_id, note_1, note_2, note_3, final_grade, updated_at').order('updated_at', { ascending: false }), 10000, 'Course grades request timed out'),
+        withTimeout(supabase.functions.invoke('list-users'), 10000, 'La carga de usuarios tardó demasiado'),
+        withTimeout(supabase.from('courses').select('*').order('created_at', { ascending: false }), 10000, 'La carga de cursos tardó demasiado'),
+        withTimeout(supabase.from('profiles').select('*').order('created_at', { ascending: false }), 10000, 'La carga de perfiles tardó demasiado'),
+        withTimeout(supabase.from('enrollments').select('course_id, student_id, enrolled_at').order('enrolled_at', { ascending: false }), 10000, 'La carga de inscripciones tardó demasiado'),
+        withTimeout(supabase.from('course_grades').select('course_id, student_id, note_1, note_2, note_3, final_grade, updated_at').order('updated_at', { ascending: false }), 10000, 'La carga de notas tardó demasiado'),
       ])
 
       const authUsers = usersError ? [] : usersResponse?.users || []
@@ -176,7 +176,7 @@ export default function AdminDashboard() {
       })
 
       if (usersError) {
-        setLoadError('No se pudo leer auth.users desde la Edge Function. Se estan mostrando los perfiles disponibles en Supabase.')
+        setLoadError('No se pudo cargar la lista completa de usuarios. Se están mostrando los perfiles disponibles.')
       }
     } catch (error) {
       console.warn('No se pudo cargar la lista completa de usuarios.', error)
@@ -309,7 +309,7 @@ export default function AdminDashboard() {
         if (enrollmentError) {
           alert(`Curso guardado, pero no se pudieron sincronizar los estudiantes: ${enrollmentError.message}`)
         } else {
-          alert(editingCourseId ? 'Course updated' : 'Course created')
+          alert(editingCourseId ? 'Curso actualizado' : 'Curso creado')
         }
 
         setShowCourseModal(false)
@@ -408,7 +408,7 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error al invocar create-user', error)
       alert(
-        'No se pudo enviar la solicitud a la Edge Function. Revisa que la funcion create-user este desplegada en Supabase y que el proyecto del frontend sea el mismo.'
+        'No se pudo crear el usuario. Intenta de nuevo más tarde o contacta al administrador del sistema.'
       )
     }
 
@@ -417,11 +417,11 @@ export default function AdminDashboard() {
 
   const handleDeleteUser = async (userId, userEmail) => {
     if (userId === profile?.id) {
-      alert('You cannot delete your own user')
+      alert('No puedes eliminar tu propio usuario')
       return
     }
 
-    if (window.confirm(`Delete user ${userEmail}?`)) {
+    if (window.confirm(`¿Eliminar al usuario ${userEmail}?`)) {
       try {
         const { data, error } = await supabase.functions.invoke('delete-user', {
           body: { user_id: userId },
@@ -431,10 +431,10 @@ export default function AdminDashboard() {
           throw new Error(data?.error || error.message || 'No se pudo eliminar el usuario')
         }
 
-        alert(data?.message || 'User deleted')
+        alert(data?.message || 'Usuario eliminado')
         await fetchData()
       } catch (deleteError) {
-        alert(`Error al eliminar usuario: ${deleteError?.message || 'No se pudo completar la eliminacion'}`)
+        alert(`Error al eliminar usuario: ${deleteError?.message || 'No se pudo completar la eliminación'}`)
       }
     }
   }
@@ -445,7 +445,7 @@ export default function AdminDashboard() {
     const userFullName = user.full_name
 
     if (newRole === 'admin') {
-      alert('Admin role cannot be assigned from the panel')
+      alert('El rol de administrador no se puede asignar desde el panel')
       return
     }
 
@@ -478,7 +478,7 @@ export default function AdminDashboard() {
       const message = await getFunctionErrorMessage(error, data, 'No se pudo actualizar el rol')
       alert(`Error al actualizar rol: ${message}`)
     } else {
-      alert('Role updated')
+      alert('Rol actualizado')
       await fetchData()
     }
   }
@@ -650,7 +650,7 @@ export default function AdminDashboard() {
         <section className="rounded-lg bg-white p-6 shadow">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-lg font-semibold">Accesos rapidos</h2>
+              <h2 className="text-lg font-semibold">Accesos rápidos</h2>
               <p className="text-sm text-gray-500">
                 El perfil y el chat ahora viven en vistas dedicadas para mantener este panel enfocado en la gestion.
               </p>
@@ -718,7 +718,7 @@ export default function AdminDashboard() {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Titulo</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Título</th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Materia</th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Grado</th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Estudiantes</th>
@@ -733,7 +733,7 @@ export default function AdminDashboard() {
                     <td className="px-6 py-4 text-sm">{course.subject || '-'}</td>
                     <td className="px-6 py-4 text-sm">{course.grade_level || '-'}</td>
                     <td className="px-6 py-4 text-sm">{courseStudentIdsByCourseId.get(course.id)?.length || 0}</td>
-                    <td className="px-6 py-4 text-sm">{course.is_active ? 'Si' : 'No'}</td>
+                    <td className="px-6 py-4 text-sm">{course.is_active ? 'Sí' : 'No'}</td>
                     <td className="px-6 py-4 text-sm">
                       <div className="flex flex-wrap gap-3">
                         <button onClick={() => openViewCourseStudents(course)} className="text-blue-600 hover:text-blue-800">
@@ -771,7 +771,7 @@ export default function AdminDashboard() {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Email</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Correo</th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Nombre</th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Grado</th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Rol</th>
@@ -811,7 +811,7 @@ export default function AdminDashboard() {
                       <td className="px-6 py-4 text-sm">
                         {user.source === 'auth' && !user.has_profile ? (
                           <span className="mr-3 inline-flex rounded bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-700">
-                            Sin perfil
+                            Perfil incompleto
                           </span>
                         ) : null}
                         <button
@@ -886,10 +886,10 @@ export default function AdminDashboard() {
           submitting={courseActionLoading}
           submitLabel={editingCourseId ? 'Guardar cambios' : 'Guardar'}
           studentSectionTitle="Estudiantes del curso"
-          studentSectionDescription="Marca los estudiantes que quedaran inscritos en este curso."
+          studentSectionDescription="Marca los estudiantes que quedarán inscritos en este curso."
           searchPlaceholder="Buscar por nombre o correo"
-          noResultsMessage="No hay resultados para tu busqueda."
-          emptyStudentsMessage="Aun no hay estudiantes creados."
+          noResultsMessage="No hay resultados para tu búsqueda."
+          emptyStudentsMessage="Aún no hay estudiantes creados."
         />
 
         {viewingCourseStudents && (
@@ -917,7 +917,7 @@ export default function AdminDashboard() {
                   if (assignedStudents.length === 0) {
                     return (
                       <div className="px-4 py-5 text-sm text-gray-500">
-                        Este curso todavia no tiene estudiantes asignados.
+                        Este curso todavía no tiene estudiantes asignados.
                       </div>
                     )
                   }
@@ -943,7 +943,7 @@ export default function AdminDashboard() {
             <div className="w-full max-w-lg rounded-lg bg-white p-6">
               <h2 className="text-xl font-bold text-red-700">Eliminar curso</h2>
               <p className="mt-2 text-sm text-gray-600">
-                Esta accion eliminara el curso y sus relaciones asociadas. Para continuar, escribe exactamente el nombre del curso:
+                Esta acción eliminará el curso y sus relaciones asociadas. Para continuar, escribe exactamente el nombre del curso:
               </p>
               <div className="mt-4 rounded-lg bg-gray-50 p-3">
                 <div className="text-sm font-semibold text-gray-700">{deletingCourse.title}</div>

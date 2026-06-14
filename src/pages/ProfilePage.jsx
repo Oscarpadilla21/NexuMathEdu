@@ -118,11 +118,11 @@ export default function ProfilePage() {
       }
 
       await refreshProfile()
-      setStatusMessage(`Proveedor del chat actualizado a ${getChatProviderLabel(provider)}.`)
+      setStatusMessage(`Modelo de respuesta actualizado a ${getChatProviderLabel(provider)}.`)
       setStatusType('success')
     } catch (error) {
       console.error('Chat provider update failed', error)
-      setStatusMessage(error?.message || 'No se pudo guardar la configuracion del chat.')
+      setStatusMessage(error?.message || 'No se pudo guardar la configuración del chat.')
       setStatusType('error')
     } finally {
       setIsSavingChatProvider(false)
@@ -136,9 +136,9 @@ export default function ProfilePage() {
         <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
           <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-900 px-6 py-8 text-white sm:px-8">
             <p className="text-sm uppercase tracking-[0.25em] text-slate-300">Mi perfil</p>
-            <h1 className="mt-3 text-3xl font-semibold">Informacion de tu cuenta</h1>
+            <h1 className="mt-3 text-3xl font-semibold">Información de tu cuenta</h1>
             <p className="mt-2 max-w-2xl text-sm text-slate-300">
-              Desde aqui puedes revisar los datos basicos de tu sesion y saltar rapido al chat.
+              Desde aquí puedes revisar los datos básicos de tu sesión y acceder rápidamente al chat.
             </p>
           </div>
 
@@ -164,7 +164,7 @@ export default function ProfilePage() {
                   <dd className="mt-2 text-lg font-semibold text-emerald-600">Activo</dd>
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                  <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">ID de usuario</dt>
+                  <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Identificador</dt>
                   <dd className="mt-2 break-all text-sm font-medium text-slate-700">{profile?.id || user?.id || 'No disponible'}</dd>
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -181,7 +181,7 @@ export default function ProfilePage() {
             {/* Acciones secundarias y una nota descriptiva. */}
             <aside className="space-y-4">
               <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-5">
-                <p className="text-sm font-semibold text-indigo-700">Accesos rapidos</p>
+                <p className="text-sm font-semibold text-indigo-700">Accesos rápidos</p>
                 <div className="mt-4 flex flex-col gap-3">
                   <button
                     onClick={() => navigate('/chat')}
@@ -285,9 +285,9 @@ export default function ProfilePage() {
               <div className="rounded-2xl border border-slate-200 bg-white p-5">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">ConfiguraciÃ³n del chat</p>
+                    <p className="text-sm font-semibold text-slate-900">Configuración del chat</p>
                     <p className="mt-1 text-sm text-slate-500">
-                      Elige con quÃ© proveedor se responderÃ¡ tu chat.
+                      Elige con qué modelo se responderá tu chat.
                     </p>
                   </div>
                 </div>
@@ -295,7 +295,7 @@ export default function ProfilePage() {
                 <div className="mt-5 space-y-3">
                   <label className="block">
                     <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                      Proveedor
+                      Modelo de respuesta
                     </span>
                     <select
                       value={selectedChatProvider}
@@ -313,8 +313,8 @@ export default function ProfilePage() {
 
                   <p className="text-sm leading-6 text-slate-600">
                     {selectedChatProvider === 'profesor_2'
-                      ? 'EstÃ¡ usando Profesor 2 para las respuestas del chat.'
-                      : 'EstÃ¡ usando Profesor 1 para las respuestas del chat.'}
+                      ? 'Estás usando Profesor 2 para las respuestas del chat.'
+                      : 'Estás usando Profesor 1 para las respuestas del chat.'}
                   </p>
                 </div>
               </div>
@@ -322,8 +322,7 @@ export default function ProfilePage() {
               <div className="rounded-2xl border border-slate-200 bg-white p-5">
                 <p className="text-sm font-semibold text-slate-900">Nota</p>
                 <p className="mt-2 text-sm leading-6 text-slate-600">
-                  Esta vista esta separada del panel principal para que el perfil tenga su propia navegacion y pueda crecer
-                  mas adelante con edicion de datos, foto y preferencias.
+                  Aquí puedes gestionar tu contraseña, el modelo de respuesta del chat y volver al panel principal cuando lo necesites.
                 </p>
               </div>
             </aside>

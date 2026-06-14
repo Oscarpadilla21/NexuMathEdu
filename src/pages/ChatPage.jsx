@@ -81,6 +81,7 @@ export default function ChatPage() {
     setSettings((cur) => ({ ...cur, ...partial }))
   }
 
+  const [settingsSaved, setSettingsSaved] = useState(false)
   const [saveMessage, setSaveMessage] = useState('')
   const handleSaveSettings = async () => {
     if (!session?.access_token || !profile?.id) return
@@ -91,7 +92,8 @@ export default function ChatPage() {
         .update({ chat_provider: settings.provider })
         .eq('id', profile.id)
       if (error) throw error
-      setSaveMessage('Configuracion guardada')
+      setSettingsSaved(true)
+      setSaveMessage('Configuración guardada')
       setTimeout(() => setSaveMessage(''), 2500)
     } catch {
       setSaveMessage('Error al guardar')
@@ -111,13 +113,14 @@ export default function ChatPage() {
       setMessages(data?.messages || [])
       setSettings(data?.active_thread_settings || buildDefaultChatSettings(role, profile?.chat_provider))
     } catch (err) {
-      setError(err?.message || 'No se pudo abrir esa conversacion.')
+      setError(err?.message || 'No se pudo abrir esa conversación.')
     }
   }
 
   const handleNewThread = () => {
     setActiveThreadId(null)
     setMessages([])
+    setSettingsSaved(false)
     setError('')
     if (!isDesktop()) setLeftOpen(false)
   }
@@ -144,8 +147,8 @@ export default function ChatPage() {
     }
   }
 
-  const emptyStateText = roleProfile.welcomeText || 'Escribe una pregunta para iniciar una nueva conversacion.'
-  const isSettingsLocked = messages.length > 0
+  const emptyStateText = roleProfile.welcomeText || 'Escribe una pregunta para iniciar una nueva conversación.'
+  const isSettingsLocked = messages.length > 0 || settingsSaved
   const defaultChatSettings = buildDefaultChatSettings(role, profile?.chat_provider)
 
   // ── Loading skeleton ────────────────────────────────────────────────────────
@@ -311,7 +314,10 @@ export default function ChatPage() {
           role={role}
           settings={settings}
           onChange={handleUpdateSettings}
-          onReset={() => setSettings(defaultChatSettings)}
+          onReset={() => {
+            setSettings(defaultChatSettings)
+            setSettingsSaved(false)
+          }}
           onSave={handleSaveSettings}
           saveMessage={saveMessage}
           profileAccent={roleProfile.accent}
@@ -331,7 +337,10 @@ export default function ChatPage() {
           role={role}
           settings={settings}
           onChange={handleUpdateSettings}
-          onReset={() => setSettings(defaultChatSettings)}
+          onReset={() => {
+            setSettings(defaultChatSettings)
+            setSettingsSaved(false)
+          }}
           onSave={handleSaveSettings}
           saveMessage={saveMessage}
           profileAccent={roleProfile.accent}

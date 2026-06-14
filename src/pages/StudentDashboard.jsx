@@ -32,7 +32,7 @@ async function loadStudentDashboardData({
         },
       }),
       10000,
-      'Student dashboard data request timed out'
+      'La carga del tablero tardó demasiado'
     )
 
     if (functionError) {

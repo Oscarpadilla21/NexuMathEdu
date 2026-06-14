@@ -2,7 +2,7 @@ import { getChatProviderLabel, getChatProviderOptions, normalizeChatProvider } f
 
 export { getChatProviderLabel, getChatProviderOptions, normalizeChatProvider }
 
-// Perfiles visuales y de contenido para adaptar el chat segun el rol.
+// Perfiles visuales y de contenido para adaptar el chat según el rol.
 const ROLE_PROFILES = {
   admin: {
     label: 'Administrador',
@@ -10,9 +10,9 @@ const ROLE_PROFILES = {
     border: 'border-[#9d31ff]/20',
     glow: 'shadow-[#9d31ff]/15',
     welcomeTitle: 'Modo administrador',
-    welcomeText: 'Usa el chat para soporte operativo, orientacion de plataforma y respuestas accionables.',
-    defaultFocus: 'gestion de plataforma',
-    suggestedFocus: ['gestion de plataforma', 'soporte tecnico', 'reportes', 'analisis'],
+    welcomeText: 'Usa el chat para soporte operativo, orientación de plataforma y respuestas accionables.',
+    defaultFocus: 'gestión de plataforma',
+    suggestedFocus: ['gestión de plataforma', 'soporte técnico', 'reportes', 'análisis'],
   },
   teacher: {
     label: 'Profesor',
@@ -20,9 +20,9 @@ const ROLE_PROFILES = {
     border: 'border-[#9d31ff]/20',
     glow: 'shadow-[#9d31ff]/15',
     welcomeTitle: 'Modo profesor',
-    welcomeText: 'Pide planificacion de clases, evaluaciones, actividades y explicaciones listas para el aula.',
+    welcomeText: 'Pide planificación de clases, evaluaciones, actividades y explicaciones listas para el aula.',
     defaultFocus: 'plan de clase',
-    suggestedFocus: ['plan de clase', 'actividades', 'evaluaciones', 'retroalimentacion'],
+    suggestedFocus: ['plan de clase', 'actividades', 'evaluaciones', 'retroalimentación'],
   },
   student: {
     label: 'Estudiante',
@@ -30,9 +30,9 @@ const ROLE_PROFILES = {
     border: 'border-[#9d31ff]/20',
     glow: 'shadow-[#9d31ff]/15',
     welcomeTitle: 'Modo tutor',
-    welcomeText: 'Recibe explicaciones paso a paso, ejemplos y ejercicios para practicar matematicas.',
+    welcomeText: 'Recibe explicaciones paso a paso, ejemplos y ejercicios para practicar matemáticas.',
     defaultFocus: 'resolver ejercicios',
-    suggestedFocus: ['resolver ejercicios', 'repasar teoria', 'preparar examen', 'ejemplos'],
+    suggestedFocus: ['resolver ejercicios', 'repasar teoría', 'preparar examen', 'ejemplos'],
   },
 }
 

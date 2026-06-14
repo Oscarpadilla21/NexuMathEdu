@@ -74,7 +74,7 @@ export default function ChatThreadList({
         ) : (
           // Estado vacio cuando todavia no existe ningun hilo guardado.
           <div className="rounded-2xl border border-dashed border-[#e5e4e7] bg-[#fafafa] px-4 py-5 text-sm text-slate-500">
-            Todavia no hay conversaciones guardadas.
+            Todavía no hay conversaciones guardadas.
           </div>
         )}
       </div>

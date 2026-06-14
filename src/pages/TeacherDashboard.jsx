@@ -78,7 +78,7 @@ async function loadTeacherDashboardData({
         },
       }),
       10000,
-      'Teacher dashboard data request timed out'
+      'La carga del panel docente tardó demasiado'
     )
 
     if (functionError) {
@@ -89,7 +89,7 @@ async function loadTeacherDashboardData({
     setStudents(data?.students || [])
     setEnrollments(data?.enrollments || [])
   } catch (fetchError) {
-    setError(fetchError?.message || 'No se pudo cargar la informacion del profesor.')
+    setError(fetchError?.message || 'No se pudo cargar la información del profesor.')
   } finally {
     setLoading(false)
   }
@@ -579,7 +579,7 @@ export default function TeacherDashboard() {
                         <p className="mt-1 text-sm text-slate-500">
                           {course.subject || 'Sin materia'} {course.grade_level ? ` • ${course.grade_level}` : ''}
                         </p>
-                        <p className="mt-2 text-sm leading-6 text-slate-600">{course.description || 'Sin descripcion.'}</p>
+                        <p className="mt-2 text-sm leading-6 text-slate-600">{course.description || 'Sin descripción.'}</p>
                         <div className="mt-3 text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
                           {course.student_count || 0} alumnos
                         </div>
@@ -605,7 +605,7 @@ export default function TeacherDashboard() {
           <div className="overflow-hidden rounded-[2rem] border border-[#ece8f6] bg-white shadow-2xl">
             <div className="flex flex-col gap-3 border-b border-[#ece8f6] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-slate-900">Alumnos visibles</h2>
+                <h2 className="text-lg font-semibold text-slate-900">Alumnos en mis cursos</h2>
                 <p className="text-sm text-slate-500">Edita notas, cambia el curso o quita a un alumno de una inscripción.</p>
               </div>
               <label className="flex items-center gap-2 rounded-2xl border border-[#ece8f6] bg-[#fafafa] px-3 py-2">
@@ -675,7 +675,7 @@ export default function TeacherDashboard() {
                   ) : (
                     <tr>
                       <td className="px-5 py-8 text-sm text-slate-500" colSpan={4}>
-                        No hay alumnos visibles para mostrar.
+                        No hay alumnos inscritos para mostrar.
                       </td>
                     </tr>
                   )}
@@ -690,14 +690,14 @@ export default function TeacherDashboard() {
           enrollments={enrollments}
           students={students}
           scopeLabel="Vista del profesor"
-          emptyMessage="Todavia no hay cursos con datos suficientes para comparar rendimiento."
+          emptyMessage="Todavía no hay cursos con datos suficientes para comparar rendimiento."
         />
 
         <section className="overflow-hidden rounded-[2rem] border border-[#ece8f6] bg-white shadow-2xl">
           <div className="flex flex-col gap-3 border-b border-[#ece8f6] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">Alumnos guardados</h2>
-              <p className="text-sm text-slate-500">Los alumnos creados por ti. Para que aparezcan en "Alumnos visibles", deben estar inscritos en un curso.</p>
+              <h2 className="text-lg font-semibold text-slate-900">Mis alumnos registrados</h2>
+              <p className="text-sm text-slate-500">Alumnos que has creado. Para verlos en &quot;Alumnos en mis cursos&quot;, deben estar inscritos en al menos un curso.</p>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -727,7 +727,7 @@ export default function TeacherDashboard() {
                   <th className="px-5 py-3 font-semibold">Nombre</th>
                   <th className="px-5 py-3 font-semibold">Correo</th>
                   <th className="px-5 py-3 font-semibold">Grado</th>
-                  <th className="px-5 py-3 font-semibold">Accion</th>
+                  <th className="px-5 py-3 font-semibold">Acción</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#ece8f6]">

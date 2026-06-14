@@ -1,7 +1,7 @@
 export function withTimeout(
   promise,
   timeoutMs = 30000,
-  timeoutMessage = 'Operation timed out'
+  timeoutMessage = 'La operación tardó demasiado'
 ) {
   let timeoutId
 

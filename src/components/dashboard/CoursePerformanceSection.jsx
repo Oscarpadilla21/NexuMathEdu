@@ -24,14 +24,14 @@ import {
 
 const CHART_OPTIONS = [
   { value: 'bar', label: 'Barras', icon: BarChart3 },
-  { value: 'area', label: 'Lineas', icon: LineChart },
-  { value: 'scatter', label: 'Disersion', icon: ScatterChart },
+  { value: 'area', label: 'Líneas', icon: LineChart },
+  { value: 'scatter', label: 'Dispersión', icon: ScatterChart },
   { value: 'table', label: 'Tabla', icon: Table2 },
 ]
 
 const STUDENT_CHART_OPTIONS = [
   { value: 'bar', label: 'Barras', icon: BarChart3 },
-  { value: 'scatter', label: 'Disersion', icon: ScatterChart },
+  { value: 'scatter', label: 'Dispersión', icon: ScatterChart },
   { value: 'table', label: 'Tabla', icon: Table2 },
 ]
 
@@ -47,12 +47,12 @@ const CHART_COLORS = ['#9d31ff', '#ff318c', '#14b8a6', '#f59e0b', '#2563eb', '#e
 
 export default function CoursePerformanceSection({
   title = 'Rendimiento por curso',
-  description = 'Explora promedio general, aprobados y variacion frente al periodo anterior.',
+  description = 'Explora promedio general, aprobados y variación frente al periodo anterior.',
   courses = [],
   enrollments = [],
   students = [],
   courseGrades = [],
-  emptyMessage = 'Todavia no hay cursos con datos suficientes para analizar.',
+  emptyMessage = 'Todavía no hay cursos con datos suficientes para analizar.',
   scopeLabel = '',
 }) {
   const catalog = useMemo(
@@ -123,14 +123,14 @@ export default function CoursePerformanceSection({
                   </span>
                 </div>
 
-                <p className="mt-3 text-sm leading-6 text-slate-600">{course.description || 'Sin descripcion.'}</p>
+                <p className="mt-3 text-sm leading-6 text-slate-600">{course.description || 'Sin descripción.'}</p>
 
                 <div className="mt-4 grid gap-3 sm:grid-cols-3">
                   <MetricPill label="Promedio" value={formatScore(course.average_final)} tone="violet" />
                   <MetricPill label="Aprobados" value={`${course.approved_count}/${course.total_students || 0}`} tone="rose" />
                   <MetricPill
                     label="Mejora"
-                    value={course.improvement_from_previous_period === null ? 'Sin historico' : formatDelta(course.improvement_from_previous_period)}
+                    value={course.improvement_from_previous_period === null ? 'Sin histórico' : formatDelta(course.improvement_from_previous_period)}
                     tone={course.improvement_from_previous_period === null ? 'slate' : course.improvement_from_previous_period >= 0 ? 'emerald' : 'slate'}
                   />
                 </div>
@@ -257,7 +257,7 @@ function CoursePerformanceModal({ open, course, catalog, analysisMode, onModeCha
       <div className="flex h-[92svh] w-full max-w-7xl flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-white shadow-2xl">
         <div className="flex items-start justify-between gap-4 border-b border-[#ece8f6] px-5 py-4 sm:px-6">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#9d31ff]">Analisis detallado</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#9d31ff]">Análisis detallado</p>
             <h3 className="mt-2 text-2xl font-semibold text-slate-900">{course.title}</h3>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
               {activeView === 'students'
@@ -393,7 +393,7 @@ function CourseComparisonView({
           <PanelCard title="Vista">
             <div className="flex flex-wrap gap-2">
               <span className="rounded-2xl border border-[#ece8f6] bg-white px-3 py-2 text-sm font-semibold text-slate-500">
-                Comparacion de cursos
+                Comparación de cursos
               </span>
             </div>
           </PanelCard>
@@ -433,7 +433,7 @@ function CourseComparisonView({
             </div>
           </PanelCard>
 
-          <PanelCard title="Tipo de grafico">
+          <PanelCard title="Tipo de gráfico">
             <div className="grid grid-cols-2 gap-2">
               {CHART_OPTIONS.map((option) => {
                 const Icon = option.icon
@@ -476,7 +476,7 @@ function CourseComparisonView({
               </label>
 
               <label className="block">
-                <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Tipo de evaluacion</span>
+                <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Tipo de evaluación</span>
                 <select
                   value={evaluationMetric}
                   onChange={(e) => setEvaluationMetric(e.target.value)}
@@ -555,7 +555,7 @@ function CourseComparisonView({
           <SummaryCard label="Promedio filtrado" value={formatScore(courseAverageFinal.average)} helper={`Mediana: ${formatScore(courseAverageFinal.median)}`} />
           <SummaryCard label="Aprobados" value={`${courseApproved}/${filteredCourseRecords.length}`} helper={`P75: ${formatScore(courseAverageFinal.p75)}`} />
           <SummaryCard
-            label="Evaluacion"
+            label="Evaluación"
             value={METRIC_OPTIONS.find((item) => item.value === evaluationMetric)?.label || 'Nota final'}
             helper={`Desv. est.: ${formatScore(courseMetricStats.stdDev)}`}
           />
@@ -575,14 +575,14 @@ function CourseComparisonView({
             <div>
               <h4 className="text-base font-semibold text-slate-900">
                 {chartType === 'bar'
-                  ? 'Comparacion por periodos'
+                  ? 'Comparación por periodos'
                   : chartType === 'area'
-                    ? 'Evolucion temporal'
+                    ? 'Evolución temporal'
                     : chartType === 'scatter'
-                      ? 'Relacion entre variables'
+                      ? 'Relación entre variables'
                       : 'Datos detallados'}
               </h4>
-              <p className="text-sm text-slate-500">Zoom, toolbar y estados interactivos activados con ApexCharts.</p>
+              <p className="text-sm text-slate-500">Usa los controles del gráfico para acercar, alejar y explorar los datos.</p>
             </div>
             <div className="inline-flex items-center gap-2 rounded-2xl bg-[#f8faff] px-3 py-2 text-xs font-semibold text-slate-500">
               <CheckCircle2 className="h-4 w-4 text-emerald-600" />
@@ -615,7 +615,7 @@ function CourseComparisonTable({ courses }) {
     { key: 'average_final', label: 'Promedio General' },
     { key: 'median_final', label: 'Mediana' },
     { key: 'p75_final', label: 'P75' },
-    { key: 'std_final', label: 'Desv. Estandar' },
+    { key: 'std_final', label: 'Desv. estándar' },
     { key: 'approved_count', label: 'Aprobados' },
     { key: 'total_students', label: 'Total Alumnos' },
   ]
@@ -623,14 +623,14 @@ function CourseComparisonTable({ courses }) {
   return (
     <div className="mt-4 overflow-hidden rounded-[2rem] border border-[#ece8f6] bg-white shadow-sm">
       <div className="border-b border-[#ece8f6] bg-[#f8faff] px-5 py-3">
-        <h4 className="text-sm font-semibold text-slate-900">Comparacion de promedios generales</h4>
+        <h4 className="text-sm font-semibold text-slate-900">Comparación de promedios generales</h4>
         <p className="text-xs text-slate-500">Promedio general de cada curso lado a lado</p>
       </div>
       <div className="overflow-x-auto">
         <table className="min-w-full text-left text-sm">
           <thead className="bg-[#fafafa]">
             <tr className="text-xs uppercase tracking-[0.16em] text-slate-400">
-              <th className="px-5 py-3 font-semibold">Metrica</th>
+              <th className="px-5 py-3 font-semibold">Métrica</th>
               {courses.map((course) => (
                 <th key={course.id} className="px-5 py-3 font-semibold text-center">{course.title}</th>
               ))}
@@ -652,7 +652,7 @@ function CourseComparisonTable({ courses }) {
               </tr>
             ))}
             <tr className="bg-[#f0fdf4] hover:bg-[#f0fdf4]">
-              <td className="px-5 py-3 font-medium text-emerald-800">Tasa aprobacion</td>
+              <td className="px-5 py-3 font-medium text-emerald-800">Tasa de aprobación</td>
               {courses.map((course) => {
                 const rate = course.total_students > 0 ? ((course.approved_count / course.total_students) * 100) : 0
                 return (
@@ -778,7 +778,7 @@ function StudentPerformanceView({
                   ? 'Sin selección'
                   : selectedStudents.length === 1
                     ? 'Rendimiento individual'
-                    : `Comparacion de ${selectedStudents.length} alumnos`}
+                    : `Comparación de ${selectedStudents.length} alumnos`}
               </span>
             </div>
           </PanelCard>
@@ -842,7 +842,7 @@ function StudentPerformanceView({
                 })
               ) : (
                 <div className="rounded-2xl border border-dashed border-[#ece8f6] bg-white px-3 py-4 text-sm text-slate-500">
-                  {studentSearchQuery ? 'Sin resultados en la búsqueda.' : 'Este curso no tiene estudiantes visibles.'}
+                  {studentSearchQuery ? 'Sin resultados en la búsqueda.' : 'Este curso no tiene estudiantes inscritos.'}
                 </div>
               )}
             </div>
@@ -867,7 +867,7 @@ function StudentPerformanceView({
               </label>
 
               <label className="block">
-                <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Tipo de evaluacion</span>
+                <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Tipo de evaluación</span>
                 <select
                   value={evaluationMetric}
                   onChange={(e) => setEvaluationMetric(e.target.value)}
@@ -944,7 +944,7 @@ function StudentPerformanceView({
       <div className="min-h-0 overflow-y-auto p-4 sm:p-6">
         <div className="grid gap-4 md:grid-cols-4">
           <SummaryCard label="Promedio" value={formatScore(filteredMetricStats.average)} helper={`Mediana: ${formatScore(filteredMetricStats.median)}`} />
-          <SummaryCard label="Evaluacion" value={selectedMetricLabel} helper={`Desv. est.: ${formatScore(filteredMetricStats.stdDev)}`} />
+          <SummaryCard label="Evaluación" value={selectedMetricLabel} helper={`Desv. est.: ${formatScore(filteredMetricStats.stdDev)}`} />
           <SummaryCard
             label="Seleccionados"
             value={selectedStudents.length}
@@ -965,7 +965,7 @@ function StudentPerformanceView({
                   ? 'Selecciona alumnos para comparar'
                   : selectedStudents.length === 1
                     ? `Rendimiento de ${selectedStudents[0].student_name}`
-                    : `Comparacion: ${selectedStudents.map((s) => s.student_name).join(' vs ')}`}
+                    : `Comparación: ${selectedStudents.map((s) => s.student_name).join(' vs ')}`}
               </h4>
               <p className="text-sm text-slate-500">
                 {selectedStudents.length === 0
@@ -1021,7 +1021,7 @@ function StudentComparisonTable({ students, periodKeys }) {
   return (
     <div className="mt-4 overflow-hidden rounded-[2rem] border border-[#ece8f6] bg-white shadow-sm">
       <div className="border-b border-[#ece8f6] bg-[#f8faff] px-5 py-3">
-        <h4 className="text-sm font-semibold text-slate-900">Comparacion lado a lado</h4>
+        <h4 className="text-sm font-semibold text-slate-900">Comparación lado a lado</h4>
         <p className="text-xs text-slate-500">Notas de los alumnos seleccionados en columnas paralelas</p>
       </div>
       <div className="overflow-x-auto">
@@ -1144,7 +1144,7 @@ function SimpleBarChart({ series, categories, height = 360 }) {
                     fontSize="10"
                     fontWeight="600"
                   >
-                    Aprobacion {PASSING_GRADE}
+                    Aprobación {PASSING_GRADE}
                   </text>
                 )}
               </g>
@@ -1274,7 +1274,7 @@ function ApexChartPanel({ type, options, series, height = 420 }) {
         await chartRef.current.render()
       } catch (error) {
         console.error('Failed to render ApexCharts', error)
-        setChartError(error instanceof Error ? error.message : 'No se pudo renderizar la grafica')
+        setChartError(error instanceof Error ? error.message : 'No se pudo renderizar el gráfico')
       }
     }
 
@@ -1297,7 +1297,7 @@ function ApexChartPanel({ type, options, series, height = 420 }) {
     return (
       <div className="grid min-h-[18rem] place-items-center rounded-3xl border border-dashed border-[#ece8f6] bg-[#fafafa] px-6 py-10 text-center text-sm text-slate-500">
         <div>
-          <div className="font-semibold text-slate-700">La grafica no pudo cargarse.</div>
+          <div className="font-semibold text-slate-700">El gráfico no pudo cargarse.</div>
           <div className="mt-1 text-xs text-slate-400">{chartError}</div>
         </div>
       </div>
@@ -1415,7 +1415,7 @@ function buildComparisonChartOptions(chartData, chartType, selectedPeriodKeys) {
             y: PASSING_GRADE,
             borderColor: '#10b981',
             label: {
-              text: `Aprobacion ${PASSING_GRADE}`,
+              text: `Aprobación ${PASSING_GRADE}`,
               style: {
                 color: '#fff',
                 background: '#10b981',
@@ -1496,7 +1496,7 @@ function buildComparisonChartOptions(chartData, chartType, selectedPeriodKeys) {
           y: PASSING_GRADE,
           borderColor: '#10b981',
           label: {
-            text: `Aprobacion ${PASSING_GRADE}`,
+            text: `Aprobación ${PASSING_GRADE}`,
             style: {
               color: '#fff',
               background: '#10b981',
@@ -1595,7 +1595,7 @@ function buildStudentChartOptions(chartData, chartType) {
         min: 0,
         max: 5,
         title: {
-          text: 'Calificacion',
+          text: 'Calificación',
         },
       },
       tooltip: {
@@ -1680,7 +1680,7 @@ function buildStudentChartOptions(chartData, chartType) {
           y: PASSING_GRADE,
           borderColor: '#10b981',
           label: {
-            text: `Aprobacion ${PASSING_GRADE}`,
+            text: `Aprobación ${PASSING_GRADE}`,
             style: {
               color: '#fff',
               background: '#10b981',
@@ -1718,14 +1718,14 @@ function StudentNotesCard({ record }) {
 
   return (
     <div className="rounded-[2rem] border border-[#ece8f6] bg-white p-5 shadow-sm">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9d31ff]">Detalle academico</p>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9d31ff]">Detalle académico</p>
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <MetricPill label="Asistencia" value={formatScore(attendance)} tone="emerald" />
         <MetricPill label="Curso" value={record.course_title} tone="slate" />
       </div>
       <div className="mt-4 text-sm text-slate-500">
         <div className="flex items-center justify-between rounded-2xl bg-[#f8faff] px-3 py-2">
-          <span>Nota historica</span>
+          <span>Nota histórica</span>
           <span className="font-semibold text-slate-900">{formatScore(record.final_grade)}</span>
         </div>
       </div>

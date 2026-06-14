@@ -132,7 +132,7 @@ export default function ChatComposer({ onSend, placeholder, disabled, sending })
               ? 'border-[#9d31ff] bg-[#9d31ff] text-white shadow-sm'
               : 'border-[#e5e4e7] bg-white text-slate-500 hover:border-[#9d31ff]/30 hover:text-[#9d31ff]'
           }`}
-          title="Teclado matematico"
+          title="Teclado matemático"
         >
           <Calculator className="h-4 w-4 sm:h-5 sm:w-5" />
         </button>

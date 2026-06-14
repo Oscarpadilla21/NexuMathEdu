@@ -44,7 +44,7 @@ export default function DashboardHeader({
             className={`group relative flex h-10 w-10 items-center justify-center rounded-xl transition-all active:scale-95 ${
               variant === 'gradient' ? 'bg-white/15 hover:bg-white/20' : 'bg-white/5 hover:bg-white/10'
             }`}
-            aria-label="MenÃº"
+            aria-label="Menú"
           >
             <div className="flex flex-col gap-1.5">
               <span className={`h-0.5 w-5 rounded-full bg-white transition-all ${menuOpen ? 'translate-y-2 rotate-45' : ''}`} />

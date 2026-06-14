@@ -26,7 +26,7 @@ export default function ChatSettingsPanel({
       {!isSidebar && (
         <div className="flex items-start justify-between gap-4 border-b border-[#ece8f6] pb-4">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#9d31ff]">Configuracion</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#9d31ff]">Configuración</p>
             <h2 className="mt-2 text-xl font-semibold text-slate-900">Ajustes del chat</h2>
             <p className="mt-1 text-sm text-slate-500">{roleProfile.label}</p>
           </div>
@@ -111,13 +111,13 @@ export default function ChatSettingsPanel({
             disabled={disabled}
             className="w-full rounded-2xl border border-[#e5e4e7] bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#9d31ff]/40 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <option value="espanol">Espanol</option>
+            <option value="espanol">Español</option>
             <option value="english">English</option>
           </select>
         </label>
 
         <label className="block">
-          <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Proveedor</span>
+          <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Modelo de respuesta</span>
           <select
             value={selectedProvider}
             onChange={(e) => onChange({ provider: e.target.value })}
@@ -133,7 +133,7 @@ export default function ChatSettingsPanel({
         </label>
 
         <div className="rounded-2xl border border-[#e5e4e7] bg-[#fafafa] px-4 py-4 text-sm leading-6 text-slate-600">
-          Este panel ajusta tono, detalle, enfoque, idioma y proveedor desde un solo lugar.
+          Este panel ajusta tono, detalle, enfoque, idioma y modelo de respuesta desde un solo lugar.
         </div>
       </div>
 
@@ -144,7 +144,7 @@ export default function ChatSettingsPanel({
         className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#9d31ff] to-[#ff318c] px-4 py-3 text-sm font-semibold text-white shadow-md transition hover:brightness-110 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
       >
         <Save className="h-4 w-4" />
-        {disabled ? 'Configuracion bloqueada' : 'Guardar configuracion'}
+        {disabled ? 'Configuración bloqueada' : 'Guardar configuración'}
       </button>
 
       {saveMessage && (
@@ -157,7 +157,7 @@ export default function ChatSettingsPanel({
         disabled={disabled}
         className="mt-2 rounded-2xl border border-[#e5e4e7] bg-white px-4 py-3 text-sm font-semibold text-slate-800 transition hover:border-[#9d31ff]/30 hover:bg-[#f8faff] disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {disabled ? 'Configuracion bloqueada' : 'Restablecer ajustes'}
+        {disabled ? 'Configuración bloqueada' : 'Restablecer ajustes'}
       </button>
     </section>
   )

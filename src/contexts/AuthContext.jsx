@@ -68,7 +68,7 @@ export const AuthProvider = ({ children }) => {
       const { data, error } = await withTimeout(
         supabase.from('profiles').select('*').eq('id', userRecord.id).maybeSingle(),
         30000,
-        'Profile lookup timed out'
+        'La consulta del perfil tardó demasiado'
       )
 
       if (!error && data) {
@@ -142,7 +142,7 @@ export const AuthProvider = ({ children }) => {
         } = await withTimeout(
           supabase.auth.getSession(),
           45000,
-          'Auth session request timed out'
+          'La verificación de sesión tardó demasiado'
         )
 
         if (!isMounted) return
@@ -238,7 +238,7 @@ export const AuthProvider = ({ children }) => {
       const { data, error } = await withTimeout(
         supabase.auth.signInWithPassword({ email, password }),
         45000,
-        'Login request timed out'
+        'El inicio de sesión tardó demasiado. Intenta de nuevo.'
       )
       if (error) throw error
 

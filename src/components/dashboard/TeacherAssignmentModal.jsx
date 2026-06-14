@@ -150,7 +150,7 @@ export default function TeacherAssignmentModal({
                     </span>
                     <input
                       type="text"
-                      placeholder={`Nombre o email del ${resourceLabel.toLowerCase()}...`}
+                      placeholder={`Nombre o correo del ${resourceLabel.toLowerCase()}...`}
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="w-full rounded-2xl border border-[#ece8f6] bg-white px-3 py-3 text-sm outline-none focus:border-[#9d31ff]"

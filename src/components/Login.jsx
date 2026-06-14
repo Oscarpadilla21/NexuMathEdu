@@ -31,7 +31,7 @@ const Login = () => {
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-[#f8faff]">
         <div className="rounded-3xl border border-white/20 bg-white px-6 py-5 text-sm text-slate-600 shadow-2xl">
-          Verificando sesion...
+          Verificando sesión...
         </div>
       </div>
     );
@@ -70,7 +70,7 @@ const Login = () => {
       {/* Contenedor Principal */}
       <div className="relative w-full max-w-md bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-white/20">
 
-        {/* SecciÃ³n Superior con Gradiente */}
+        {/* Sección superior con gradiente */}
         <div className="bg-gradient-to-r from-[#9d31ff] to-[#ff318c] p-10 flex flex-col items-center text-white">
           <div className="bg-white/20 p-3 rounded-xl backdrop-blur-md mb-4">
             <Lock size={28} />
@@ -85,7 +85,7 @@ const Login = () => {
           {/* Email Field */}
           <div className="space-y-2">
             <label className="flex items-center text-xs font-semibold text-purple-600 uppercase tracking-wider gap-2">
-              <Mail size={14} /> Correo electronico 
+              <Mail size={14} /> Correo electrónico
             </label>
             <div className="relative">
               <input
@@ -137,7 +137,7 @@ const Login = () => {
 
           {isAuthenticated && !authLoading && !role && (
             <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-              Tu sesión inició, pero no pudimos leer tu rol. Revisa la tabla profiles en Supabase.
+              Tu sesión inició, pero no pudimos determinar tu rol. Cierra sesión e intenta de nuevo. Si el problema continúa, contacta al administrador.
             </div>
           )}
 
@@ -147,7 +147,7 @@ const Login = () => {
             disabled={loading}
             className="w-full mt-4 bg-gradient-to-r from-[#9d31ff] to-[#ff318c] text-white font-bold py-4 rounded-xl shadow-lg shadow-purple-200 hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            {loading ? 'Iniciando sesion...' : 'Iniciar sesion'}
+            {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
             <ArrowRight size={18} />
           </button>
         </form>
