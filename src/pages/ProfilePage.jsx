@@ -1,9 +1,7 @@
 import { useMemo, useState, useEffect } from 'react'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, Shield } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { supabase } from '../lib/supabase'
-import { getChatProviderLabel, getChatProviderOptions, normalizeChatProvider } from '../utils/chatPresets'
 
 const roleLabels = {
   admin: 'Administrador',
@@ -12,7 +10,7 @@ const roleLabels = {
 }
 
 export default function ProfilePage() {
-  const { profile, user, logout, role, login, updatePassword, refreshProfile, isAuthenticated } = useAuth()
+  const { profile, user, role, login, updatePassword, isAuthenticated } = useAuth()
   const navigate = useNavigate()
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -23,7 +21,6 @@ export default function ProfilePage() {
   const [statusMessage, setStatusMessage] = useState(null)
   const [statusType, setStatusType] = useState('')
   const [isChangingPassword, setIsChangingPassword] = useState(false)
-  const [isSavingChatProvider, setIsSavingChatProvider] = useState(false)
 
   // Si la sesión se cierra, redirigimos automáticamente.
   useEffect(() => {
@@ -31,11 +28,6 @@ export default function ProfilePage() {
       navigate('/login', { replace: true })
     }
   }, [isAuthenticated, navigate])
-
-  // Cerramos sesion sin redirigir manualmente.
-  const handleLogout = async () => {
-    await logout()
-  }
 
   const handlePasswordChange = async (event) => {
     event.preventDefault()
@@ -101,234 +93,139 @@ export default function ProfilePage() {
   const resolvedName = profile?.full_name || user?.user_metadata?.full_name || resolvedEmail
   const resolvedRole = role || user?.user_metadata?.role || user?.app_metadata?.role || null
   const roleLabel = roleLabels[resolvedRole] || 'Usuario'
-  const selectedChatProvider = normalizeChatProvider(profile?.chat_provider)
-
-  const handleChatProviderChange = async (provider) => {
-    if (!profile?.id) return
-
-    setIsSavingChatProvider(true)
-    setStatusMessage(null)
-    setStatusType('')
-
-    try {
-      const { error } = await supabase.from('profiles').update({ chat_provider: provider }).eq('id', profile.id)
-
-      if (error) {
-        throw error
-      }
-
-      await refreshProfile()
-      setStatusMessage(`Modelo de respuesta actualizado a ${getChatProviderLabel(provider)}.`)
-      setStatusType('success')
-    } catch (error) {
-      console.error('Chat provider update failed', error)
-      setStatusMessage(error?.message || 'No se pudo guardar la configuración del chat.')
-      setStatusType('error')
-    } finally {
-      setIsSavingChatProvider(false)
-    }
-  }
 
   return (
-    <div className="min-h-[calc(100svh-64px)] bg-slate-50">
-      {/* Vista de detalle del perfil y accesos rapidos al resto de la app. */}
-      <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
-        <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-900 px-6 py-8 text-white sm:px-8">
-            <p className="text-sm uppercase tracking-[0.25em] text-slate-300">Mi perfil</p>
-            <h1 className="mt-3 text-3xl font-semibold">Información de tu cuenta</h1>
-            <p className="mt-2 max-w-2xl text-sm text-slate-300">
-              Desde aquí puedes revisar los datos básicos de tu sesión y acceder rápidamente al chat.
-            </p>
-          </div>
-
-          <div className="grid gap-6 p-6 sm:p-8 lg:grid-cols-[1.2fr_0.8fr]">
-            <div className="rounded-2xl bg-slate-50 p-6">
-              <div className="flex items-center gap-4">
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-900 text-xl font-bold text-white">
-                  {initials || 'NA'}
-                </div>
-                <div>
-                  <h2 className="text-xl font-semibold text-slate-900">{resolvedName}</h2>
-                  <p className="text-sm text-slate-500">{resolvedEmail}</p>
-                </div>
+    <div className="w-full min-h-[calc(100svh-64px)] bg-slate-50 p-4 flex flex-col">
+      {/* Grid de contenido de 2 columnas en desktop, 1 columna en móvil */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+        {/* Columna 1: Mi Cuenta */}
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm flex flex-col justify-between">
+          <div>
+            <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900 text-sm font-bold text-white shadow-sm shrink-0">
+                {initials || 'NA'}
               </div>
-
-              <dl className="mt-6 grid gap-4 sm:grid-cols-2">
-                <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                  <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Rol</dt>
-                  <dd className="mt-2 text-lg font-semibold text-slate-900">{roleLabel}</dd>
-                </div>
-                <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                  <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Estado</dt>
-                  <dd className="mt-2 text-lg font-semibold text-emerald-600">Activo</dd>
-                </div>
-                <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                  <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Identificador</dt>
-                  <dd className="mt-2 break-all text-sm font-medium text-slate-700">{profile?.id || user?.id || 'No disponible'}</dd>
-                </div>
-                <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                  <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Desde</dt>
-                  <dd className="mt-2 text-sm font-medium text-slate-700">
-                    {profile?.created_at || user?.created_at
-                      ? new Date(profile?.created_at || user?.created_at).toLocaleDateString('es-CO')
-                      : 'Sin dato'}
-                  </dd>
-                </div>
-              </dl>
+              <div className="min-w-0">
+                <h2 className="text-base font-bold text-slate-900 leading-tight truncate">{resolvedName}</h2>
+                <p className="text-xs text-slate-500 truncate">{resolvedEmail}</p>
+              </div>
             </div>
 
-            {/* Acciones secundarias y una nota descriptiva. */}
-            <aside className="space-y-4">
-              <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-5">
-                <p className="text-sm font-semibold text-indigo-700">Accesos rápidos</p>
-                <div className="mt-4 flex flex-col gap-3">
-                  <button
-                    onClick={() => navigate('/chat')}
-                    className="rounded-xl bg-indigo-600 px-4 py-3 text-left text-sm font-semibold text-white transition hover:bg-indigo-700"
-                  >
-                    Abrir chat
-                  </button>
-                  <button
-                    onClick={() => navigate(`/${resolvedRole || 'login'}`)}
-                    className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                  >
-                    Volver al inicio
-                  </button>
-                </div>
+            <dl className="mt-4 space-y-3">
+              <div className="rounded-lg border border-slate-100 bg-slate-50/20 p-3 flex items-center justify-between">
+                <dt className="text-xs font-bold uppercase tracking-wider text-slate-400">Rol</dt>
+                <dd className="text-sm font-semibold text-slate-800">{roleLabel}</dd>
               </div>
-
-              <div className="rounded-2xl border border-slate-200 bg-white p-5">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900">Cambiar contraseña</p>
-                    <p className="mt-1 text-sm text-slate-500">
-                      Actualiza tu contraseña para mantener segura tu cuenta.
-                    </p>
-                  </div>
-                </div>
-
-                <form className="mt-5 space-y-4" onSubmit={handlePasswordChange}>
-                  <div className="relative">
-                    <label className="text-sm font-medium text-slate-700">Contraseña actual</label>
-                    <input
-                      type={showCurrentPassword ? 'text' : 'password'}
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 pr-12 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-                      placeholder="Ingresa tu contraseña actual"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowCurrentPassword((prev) => !prev)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900"
-                      aria-label={showCurrentPassword ? 'Ocultar contraseña actual' : 'Mostrar contraseña actual'}
-                    >
-                      {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-
-                  <div className="relative">
-                    <label className="text-sm font-medium text-slate-700">Nueva contraseña</label>
-                    <input
-                      type={showNewPassword ? 'text' : 'password'}
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 pr-12 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-                      placeholder="Ingresa tu nueva contraseña"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowNewPassword((prev) => !prev)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900"
-                      aria-label={showNewPassword ? 'Ocultar nueva contraseña' : 'Mostrar nueva contraseña'}
-                    >
-                      {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-
-                  <div className="relative">
-                    <label className="text-sm font-medium text-slate-700">Confirmar nueva contraseña</label>
-                    <input
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 pr-12 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-                      placeholder="Repite tu nueva contraseña"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword((prev) => !prev)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900"
-                      aria-label={showConfirmPassword ? 'Ocultar confirmación de contraseña' : 'Mostrar confirmación de contraseña'}
-                    >
-                      {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-
-                  {statusMessage && (
-                    <p className={`text-sm ${statusType === 'success' ? 'text-emerald-700' : 'text-rose-600'}`}>
-                      {statusMessage}
-                    </p>
-                  )}
-
-                  <button
-                    type="submit"
-                    disabled={isChangingPassword}
-                    className="inline-flex w-full items-center justify-center rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-                  >
-                    {isChangingPassword ? 'Actualizando...' : 'Guardar contraseña'}
-                  </button>
-                </form>
+              <div className="rounded-lg border border-slate-100 bg-slate-50/20 p-3 flex items-center justify-between">
+                <dt className="text-xs font-bold uppercase tracking-wider text-slate-400">Estado</dt>
+                <dd className="text-sm font-semibold text-emerald-600">Activo</dd>
               </div>
-
-              <div className="rounded-2xl border border-slate-200 bg-white p-5">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900">Configuración del chat</p>
-                    <p className="mt-1 text-sm text-slate-500">
-                      Elige con qué modelo se responderá tu chat.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-5 space-y-3">
-                  <label className="block">
-                    <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                      Modelo de respuesta
-                    </span>
-                    <select
-                      value={selectedChatProvider}
-                      onChange={(e) => void handleChatProviderChange(e.target.value)}
-                      disabled={isSavingChatProvider}
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:opacity-70"
-                    >
-                      {getChatProviderOptions().map((provider) => (
-                        <option key={provider.value} value={provider.value}>
-                          {provider.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <p className="text-sm leading-6 text-slate-600">
-                    {selectedChatProvider === 'profesor_2'
-                      ? 'Estás usando Profesor 2 para las respuestas del chat.'
-                      : 'Estás usando Profesor 1 para las respuestas del chat.'}
-                  </p>
-                </div>
+              <div className="rounded-lg border border-slate-100 bg-slate-50/20 p-3 flex flex-col gap-1">
+                <dt className="text-xs font-bold uppercase tracking-wider text-slate-400">ID único</dt>
+                <dd className="break-all text-xs font-mono text-slate-500 select-all leading-normal">{profile?.id || user?.id || 'No disponible'}</dd>
               </div>
-
-              <div className="rounded-2xl border border-slate-200 bg-white p-5">
-                <p className="text-sm font-semibold text-slate-900">Nota</p>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  Aquí puedes gestionar tu contraseña, el modelo de respuesta del chat y volver al panel principal cuando lo necesites.
-                </p>
+              <div className="rounded-lg border border-slate-100 bg-slate-50/20 p-3 flex items-center justify-between">
+                <dt className="text-xs font-bold uppercase tracking-wider text-slate-400">Miembro desde</dt>
+                <dd className="text-xs font-semibold text-slate-700">
+                  {profile?.created_at || user?.created_at
+                    ? new Date(profile?.created_at || user?.created_at).toLocaleDateString('es-CO', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })
+                    : 'Sin dato'}
+                </dd>
               </div>
-            </aside>
+            </dl>
           </div>
-        </section>
-      </main>
+        </div>
+
+        {/* Columna 2: Seguridad / Cambiar Contraseña */}
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm flex flex-col justify-between">
+          <div>
+            <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-4">
+              <Shield size={16} className="text-indigo-600" />
+              <h3 className="text-sm font-bold text-slate-900">Cambiar contraseña</h3>
+            </div>
+
+            <form className="space-y-3" onSubmit={handlePasswordChange}>
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Contraseña actual</label>
+                <div className="relative mt-1">
+                  <input
+                    type={showCurrentPassword ? 'text' : 'password'}
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 pr-10 text-sm text-slate-800 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                    placeholder="Tu contraseña actual"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword((prev) => !prev)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer flex items-center justify-center"
+                  >
+                    {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Nueva contraseña</label>
+                <div className="relative mt-1">
+                  <input
+                    type={showNewPassword ? 'text' : 'password'}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 pr-10 text-sm text-slate-800 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                    placeholder="Mínimo 8 caracteres"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword((prev) => !prev)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer flex items-center justify-center"
+                  >
+                    {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Confirmar nueva contraseña</label>
+                <div className="relative mt-1">
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 pr-10 text-sm text-slate-800 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                    placeholder="Confirma la nueva contraseña"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((prev) => !prev)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer flex items-center justify-center"
+                  >
+                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              {statusMessage && (
+                <p className={`text-xs font-semibold leading-tight ${statusType === 'success' ? 'text-emerald-700' : 'text-rose-600'}`}>
+                  {statusMessage}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={isChangingPassword}
+                className="w-full rounded-lg bg-indigo-600 py-2.5 text-xs font-semibold text-white transition hover:bg-indigo-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-slate-300 shadow-sm mt-2 cursor-pointer"
+              >
+                {isChangingPassword ? 'Actualizando...' : 'Guardar contraseña'}
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

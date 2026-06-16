@@ -77,7 +77,7 @@ async function loadTeacherDashboardData({
           Authorization: `Bearer ${accessToken}`,
         },
       }),
-      10000,
+      30000,
       'La carga del panel docente tardó demasiado'
     )
 

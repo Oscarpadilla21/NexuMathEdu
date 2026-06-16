@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
@@ -117,18 +117,26 @@ export default function AdminDashboard() {
 
     try {
       const [
-        { data: usersResponse, error: usersError },
-        { data: coursesData },
-        { data: profileRows },
-        { data: enrollmentsData },
-        { data: gradesData },
-      ] = await Promise.all([
-        withTimeout(supabase.functions.invoke('list-users'), 10000, 'La carga de usuarios tardó demasiado'),
-        withTimeout(supabase.from('courses').select('*').order('created_at', { ascending: false }), 10000, 'La carga de cursos tardó demasiado'),
-        withTimeout(supabase.from('profiles').select('*').order('created_at', { ascending: false }), 10000, 'La carga de perfiles tardó demasiado'),
-        withTimeout(supabase.from('enrollments').select('course_id, student_id, enrolled_at').order('enrolled_at', { ascending: false }), 10000, 'La carga de inscripciones tardó demasiado'),
-        withTimeout(supabase.from('course_grades').select('course_id, student_id, note_1, note_2, note_3, final_grade, updated_at').order('updated_at', { ascending: false }), 10000, 'La carga de notas tardó demasiado'),
+        usersRes,
+        coursesRes,
+        profilesRes,
+        enrollmentsRes,
+        gradesRes,
+      ] = await Promise.allSettled([
+        withTimeout(supabase.functions.invoke('list-users'), 30000, 'La carga de usuarios tardó demasiado'),
+        withTimeout(supabase.from('courses').select('*').order('created_at', { ascending: false }), 30000, 'La carga de cursos tardó demasiado'),
+        withTimeout(supabase.from('profiles').select('*').order('created_at', { ascending: false }), 30000, 'La carga de perfiles tardó demasiado'),
+        withTimeout(supabase.from('enrollments').select('course_id, student_id, enrolled_at').order('enrolled_at', { ascending: false }), 30000, 'La carga de inscripciones tardó demasiado'),
+        withTimeout(supabase.from('course_grades').select('course_id, student_id, note_1, note_2, note_3, final_grade, updated_at').order('updated_at', { ascending: false }), 30000, 'La carga de notas tardó demasiado'),
       ])
+
+      const usersResponse = usersRes.status === 'fulfilled' ? usersRes.value?.data : null
+      const usersError = usersRes.status === 'fulfilled' ? usersRes.value?.error : (usersRes.reason || new Error('Timeout'))
+
+      const coursesData = coursesRes.status === 'fulfilled' ? coursesRes.value?.data : null
+      const profileRows = profilesRes.status === 'fulfilled' ? profilesRes.value?.data : null
+      const enrollmentsData = enrollmentsRes.status === 'fulfilled' ? enrollmentsRes.value?.data : null
+      const gradesData = gradesRes.status === 'fulfilled' ? gradesRes.value?.data : null
 
       const authUsers = usersError ? [] : usersResponse?.users || []
       const profileList = profileRows || []
@@ -175,8 +183,15 @@ export default function AdminDashboard() {
         courses: courseList.length,
       })
 
-      if (usersError) {
-        setLoadError('No se pudo cargar la lista completa de usuarios. Se están mostrando los perfiles disponibles.')
+      const failedResources = []
+      if (usersRes.status === 'rejected' || usersError) failedResources.push('usuarios auth')
+      if (coursesRes.status === 'rejected') failedResources.push('cursos')
+      if (profilesRes.status === 'rejected') failedResources.push('perfiles')
+      if (enrollmentsRes.status === 'rejected') failedResources.push('inscripciones')
+      if (gradesRes.status === 'rejected') failedResources.push('calificaciones')
+
+      if (failedResources.length > 0) {
+        setLoadError(`No se pudieron cargar todos los datos (${failedResources.join(', ')}). Mostrando información parcial disponible.`)
       }
     } catch (error) {
       console.warn('No se pudo cargar la lista completa de usuarios.', error)

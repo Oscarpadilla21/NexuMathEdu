@@ -110,7 +110,6 @@ export default function ChatPage() {
   }, [messages, activeThreadId])
 
   const handleUpdateSettings = (partial) => {
-    if (messages.length > 0) return
     setSettings((cur) => ({ ...cur, ...partial }))
   }
 
@@ -190,7 +189,7 @@ export default function ChatPage() {
       ? 'Selecciona una conversación del historial de este estudiante.'
       : 'Selecciona una conversación del historial de este usuario.'
     : roleProfile.welcomeText || 'Escribe una pregunta para iniciar una nueva conversación.'
-  const isSettingsLocked = messages.length > 0 || settingsSaved || isReadOnlyAudit
+  const isSettingsLocked = isReadOnlyAudit
   const defaultChatSettings = buildDefaultChatSettings(role, profile?.chat_provider)
 
   // ── Loading skeleton ────────────────────────────────────────────────────────

@@ -31,7 +31,7 @@ async function loadStudentDashboardData({
           Authorization: `Bearer ${accessToken}`,
         },
       }),
-      10000,
+      30000,
       'La carga del tablero tardó demasiado'
     )
 

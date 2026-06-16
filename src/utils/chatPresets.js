@@ -52,17 +52,57 @@ export function getChatDetailLevels() {
   return DEFAULT_DETAIL_LEVELS
 }
 
-export function buildDefaultChatSettings(role, provider = 'profesor_1') {
+export function getChatTopicOptions() {
+  return [
+    { value: 'general', label: 'General' },
+    { value: 'aritmetica', label: 'Aritmética' },
+    { value: 'algebra', label: 'Álgebra' },
+    { value: 'geometria', label: 'Geometría' },
+    { value: 'trigonometria', label: 'Trigonometría' },
+    { value: 'funciones', label: 'Funciones y Gráficas' },
+    { value: 'estadistica', label: 'Probabilidad y Estadística' },
+  ]
+}
+
+export function buildDefaultChatSettings(role, provider) {
   const profile = getChatRoleProfile(role)
 
-  // Estado inicial que se usa al abrir el chat o al restablecer ajustes.
-  return {
-    tone: 'claro',
-    detailLevel: 'medio',
-    focus: profile.defaultFocus,
-    language: 'espanol',
-    provider: normalizeChatProvider(provider),
+  // Valores predeterminados específicos según el rol
+  const defaultPresets = {
+    admin: {
+      tone: 'conciso',
+      detailLevel: 'breve',
+      focus: profile.defaultFocus || 'gestión de plataforma',
+      language: 'espanol',
+      provider: 'profesor_1',
+      topic: 'general',
+    },
+    teacher: {
+      tone: 'cercano',
+      detailLevel: 'profundo',
+      focus: profile.defaultFocus || 'plan de clase',
+      language: 'espanol',
+      provider: 'profesor_2',
+      topic: 'general',
+    },
+    student: {
+      tone: 'claro',
+      detailLevel: 'medio',
+      focus: profile.defaultFocus || 'resolver ejercicios',
+      language: 'espanol',
+      provider: 'profesor_1',
+      topic: 'general',
+    },
   }
+
+  const rolePreset = { ...(defaultPresets[role] || defaultPresets.student) }
+
+  // Si se provee un proveedor específico (por ejemplo, desde el perfil del usuario), lo usamos
+  if (provider) {
+    rolePreset.provider = normalizeChatProvider(provider)
+  }
+
+  return rolePreset
 }
 
 export function formatThreadLabel(thread) {

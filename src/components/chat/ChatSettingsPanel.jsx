@@ -4,6 +4,7 @@ import {
   getChatProviderOptions,
   getChatRoleProfile,
   getChatToneOptions,
+  getChatTopicOptions,
   normalizeChatProvider,
 } from '../../utils/chatPresets'
 
@@ -48,7 +49,7 @@ export default function ChatSettingsPanel({
 
       {disabled && (
         <div className="mt-2 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs leading-5 text-amber-900">
-          Este chat ya tiene mensajes. Ajustes bloqueados.
+          Modo lectura. Ajustes bloqueados.
         </div>
       )}
 
@@ -98,6 +99,22 @@ export default function ChatSettingsPanel({
             {roleProfile.suggestedFocus.map((focus) => (
               <option key={focus} value={focus}>
                 {focus}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="block">
+          <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Tema matemático</span>
+          <select
+            value={settings.topic || 'general'}
+            onChange={(e) => onChange({ topic: e.target.value })}
+            disabled={disabled}
+            className="w-full rounded-2xl border border-[#e5e4e7] bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#9d31ff]/40 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {getChatTopicOptions().map((topicOption) => (
+              <option key={topicOption.value} value={topicOption.value}>
+                {topicOption.label}
               </option>
             ))}
           </select>

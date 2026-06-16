@@ -51,66 +51,81 @@ export const AuthProvider = ({ children }) => {
     profileRef.current = profile
   }, [profile])
 
+  const profilePromiseCacheRef = useRef(null)
+
   async function fetchProfile(userRecord) {
-    // Primero intentamos leer el perfil desde la tabla; si falla, caemos a metadata.
-    const fallbackRole =
-      userRecord?.app_metadata?.role ||
-      profileRef.current?.role ||
-      'student'
-    const fallbackFullName =
-      userRecord?.user_metadata?.full_name ||
-      userRecord?.email ||
-      profileRef.current?.full_name ||
-      'Sin nombre'
+    if (profilePromiseCacheRef.current) {
+      return profilePromiseCacheRef.current
+    }
 
+    const promise = (async () => {
+      // Primero intentamos leer el perfil desde la tabla; si falla, caemos a metadata.
+      const fallbackRole =
+        userRecord?.app_metadata?.role ||
+        profileRef.current?.role ||
+        'student'
+      const fallbackFullName =
+        userRecord?.user_metadata?.full_name ||
+        userRecord?.email ||
+        profileRef.current?.full_name ||
+        'Sin nombre'
+
+      try {
+        const { data, error } = await withTimeout(
+          supabase.from('profiles').select('*').eq('id', userRecord.id).maybeSingle(),
+          45000,
+          'La consulta del perfil tardó demasiado'
+        )
+
+        if (!error && data) {
+          console.debug('Profile loaded from database:', { id: data.id, role: data.role })
+          setProfile(data)
+          return data
+        }
+
+        if (profileRef.current?.id === userRecord.id) {
+          console.info('Keeping existing cached profile for current user instead of fallback.')
+          return profileRef.current
+        }
+
+        if (error) {
+          console.warn('Profile query error:', error.message)
+        }
+      } catch (error) {
+        console.warn(
+          'Profile lookup failed, using auth metadata fallback.',
+          error instanceof Error ? error.message : error
+        )
+        if (profileRef.current?.id === userRecord.id) {
+          console.info('Keeping existing cached profile for current user instead of fallback.')
+          return profileRef.current
+        }
+      }
+
+      console.info(
+        'Using auth metadata fallback. Role:',
+        fallbackRole,
+        'Email:',
+        userRecord.email
+      )
+
+      const fallbackProfile = {
+        id: userRecord.id,
+        email: userRecord.email,
+        full_name: fallbackFullName,
+        role: fallbackRole,
+      }
+
+      setProfile(fallbackProfile)
+      return fallbackProfile
+    })()
+
+    profilePromiseCacheRef.current = promise
     try {
-      const { data, error } = await withTimeout(
-        supabase.from('profiles').select('*').eq('id', userRecord.id).maybeSingle(),
-        30000,
-        'La consulta del perfil tardó demasiado'
-      )
-
-      if (!error && data) {
-        console.debug('Profile loaded from database:', { id: data.id, role: data.role })
-        setProfile(data)
-        return data
-      }
-
-      if (profileRef.current?.id === userRecord.id) {
-        console.info('Keeping existing cached profile for current user instead of fallback.')
-        return profileRef.current
-      }
-
-      if (error) {
-        console.warn('Profile query error:', error.message)
-      }
-    } catch (error) {
-      console.warn(
-        'Profile lookup failed, using auth metadata fallback.',
-        error instanceof Error ? error.message : error
-      )
-      if (profileRef.current?.id === userRecord.id) {
-        console.info('Keeping existing cached profile for current user instead of fallback.')
-        return profileRef.current
-      }
+      return await promise
+    } finally {
+      profilePromiseCacheRef.current = null
     }
-
-    console.info(
-      'Using auth metadata fallback. Role:',
-      fallbackRole,
-      'Email:',
-      userRecord.email
-    )
-
-    const fallbackProfile = {
-      id: userRecord.id,
-      email: userRecord.email,
-      full_name: fallbackFullName,
-      role: fallbackRole,
-    }
-
-    setProfile(fallbackProfile)
-    return fallbackProfile
   }
 
   const refreshProfile = async () => {
