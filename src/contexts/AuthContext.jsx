@@ -54,7 +54,6 @@ export const AuthProvider = ({ children }) => {
   async function fetchProfile(userRecord) {
     // Primero intentamos leer el perfil desde la tabla; si falla, caemos a metadata.
     const fallbackRole =
-      userRecord?.user_metadata?.role ||
       userRecord?.app_metadata?.role ||
       profileRef.current?.role ||
       'student'
@@ -179,6 +178,11 @@ export const AuthProvider = ({ children }) => {
       isHandlingAuthRef.current = true
 
       try {
+        if (event === 'SIGNED_OUT') {
+          clearAuthState()
+          return
+        }
+
         if (session?.user && shouldInvalidateSession()) {
           await supabase.auth.signOut()
           clearAuthState()
@@ -216,6 +220,11 @@ export const AuthProvider = ({ children }) => {
       if (!sessionRef.current?.user) return
 
       if (shouldInvalidateSession()) {
+        try {
+          window.sessionStorage.setItem('nexumathedu:session-expired', 'true')
+        } catch (e) {
+          console.warn('Could not set session-expired flag in sessionStorage', e)
+        }
         void supabase.auth.signOut().catch((error) => {
           console.error('Auto sign out failed:', error)
         })

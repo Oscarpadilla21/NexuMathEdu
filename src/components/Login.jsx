@@ -10,9 +10,21 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   const navigate = useNavigate();
   const { login, isAuthenticated, role, loading: authLoading } = useAuth();
+
+  useEffect(() => {
+    try {
+      if (window.sessionStorage.getItem('nexumathedu:session-expired') === 'true') {
+        setSessionExpired(true);
+        window.sessionStorage.removeItem('nexumathedu:session-expired');
+      }
+    } catch (e) {
+      console.warn('Could not read session-expired flag from sessionStorage', e);
+    }
+  }, []);
 
   useEffect(() => {
     if (isAuthenticated && role) {
@@ -51,6 +63,7 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setSessionExpired(false);
 
     try {
       await login(email, password);
@@ -82,6 +95,12 @@ const Login = () => {
         {/* Formulario */}
         <form onSubmit={handleSubmit} className="p-8 space-y-6">
 
+          {sessionExpired && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+              Tu sesión ha expirado por inactividad. Por favor, ingresa tus credenciales de nuevo.
+            </div>
+          )}
+
           {/* Email Field */}
           <div className="space-y-2">
             <label className="flex items-center text-xs font-semibold text-purple-600 uppercase tracking-wider gap-2">
@@ -95,6 +114,7 @@ const Login = () => {
                 onChange={(e) => {
                   setEmail(e.target.value)
                   if (error) setError('')
+                  setSessionExpired(false)
                 }}
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-400 focus:bg-white outline-none transition-all text-gray-700"
               />
@@ -115,6 +135,7 @@ const Login = () => {
                 onChange={(e) => {
                   setPassword(e.target.value)
                   if (error) setError('')
+                  setSessionExpired(false)
                 }}
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-400 focus:bg-white outline-none transition-all text-gray-700"
               />
