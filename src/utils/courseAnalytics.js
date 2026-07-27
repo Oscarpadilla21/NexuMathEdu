@@ -113,6 +113,46 @@ function normalizeStudentRecord(course, student, gradeRow, enrollment) {
   }
 }
 
+export function getStudentRiskSegment(record) {
+  const finalGrade = toFiniteNumber(record?.final_grade ?? record?.note_3 ?? record?.note_2 ?? record?.note_1, 0)
+  const attendance = getAttendanceValue(record)
+  const p1 = record?.note_1 !== null && record?.note_1 !== undefined ? toFiniteNumber(record.note_1, null) : null
+  const p2 = record?.note_2 !== null && record?.note_2 !== undefined ? toFiniteNumber(record.note_2, null) : null
+  const p3 = record?.note_3 !== null && record?.note_3 !== undefined ? toFiniteNumber(record.note_3, null) : null
+
+  let drop = 0
+  if (p3 !== null && p2 !== null) {
+    drop = p2 - p3
+  } else if (p2 !== null && p1 !== null) {
+    drop = p1 - p2
+  }
+
+  if (finalGrade < 3.0 || (attendance > 0 && attendance < 70) || drop >= 0.8) {
+    return {
+      level: 'alto',
+      label: 'Riesgo Alto',
+      badgeTone: 'rose',
+      reason: finalGrade < 3.0 ? 'Nota promedio reprobatoria' : drop >= 0.8 ? 'Tendencia en descenso severo' : 'Asistencia crítica',
+    }
+  }
+
+  if (finalGrade >= 3.0 && finalGrade < 3.8) {
+    return {
+      level: 'medio',
+      label: 'Riesgo Medio',
+      badgeTone: 'amber',
+      reason: 'Rendimiento en zona límite (3.0 - 3.7)',
+    }
+  }
+
+  return {
+    level: 'bajo',
+    label: 'Bajo Riesgo',
+    badgeTone: 'emerald',
+    reason: 'Desempeño académico satisfactorio (>= 3.8)',
+  }
+}
+
 export function buildCoursePerformanceCatalog({ courses = [], enrollments = [], students = [], courseGrades = [] }) {
   const studentMap = new Map(students.map((student) => [student.id, student]))
   const courseMap = new Map(courses.map((course) => [course.id, course]))
@@ -168,8 +208,19 @@ export function buildCoursePerformanceCatalog({ courses = [], enrollments = [], 
     }
   })
 
+  let globalHighRiskCount = 0
+  let globalMediumRiskCount = 0
+  let globalLowRiskCount = 0
+  const globalHighRiskStudents = []
+  const allRecords = []
+
   const courseCards = courses.map((course) => {
-    const records = recordsByCourseId.get(course.id) || []
+    const records = (recordsByCourseId.get(course.id) || []).map((rec) => {
+      const risk = getStudentRiskSegment(rec)
+      allRecords.push({ ...rec, risk })
+      return { ...rec, risk }
+    })
+
     const finals = records
       .map((record) => record.final_grade)
       .filter((value) => value !== null && value !== undefined && value !== '')
@@ -182,6 +233,15 @@ export function buildCoursePerformanceCatalog({ courses = [], enrollments = [], 
       ])
     )
 
+    const highRiskInCourse = records.filter((r) => r.risk.level === 'alto')
+    const mediumRiskInCourse = records.filter((r) => r.risk.level === 'medio')
+    const lowRiskInCourse = records.filter((r) => r.risk.level === 'bajo')
+
+    globalHighRiskCount += highRiskInCourse.length
+    globalMediumRiskCount += mediumRiskInCourse.length
+    globalLowRiskCount += lowRiskInCourse.length
+    globalHighRiskStudents.push(...highRiskInCourse)
+
     const periodKeys = PERIOD_DEFINITIONS.map((period) => period.key)
     const validPeriodKeys = PERIOD_DEFINITIONS.filter((period) => (periodGroups.get(period.key) || []).length > 0).map((period) => period.key)
     const latestPeriodKey = validPeriodKeys.at(-1) || 'note_3'
@@ -192,6 +252,10 @@ export function buildCoursePerformanceCatalog({ courses = [], enrollments = [], 
     const improvement = previousAverage === null ? null : roundScore(latestAverage - previousAverage)
 
     const courseStats = computeNumericStats(numericFinals)
+
+    const p1Stats = computeNumericStats(periodGroups.get('note_1') || [])
+    const p2Stats = computeNumericStats(periodGroups.get('note_2') || [])
+    const p3Stats = computeNumericStats(periodGroups.get('note_3') || [])
 
     return {
       ...course,
@@ -209,11 +273,28 @@ export function buildCoursePerformanceCatalog({ courses = [], enrollments = [], 
       improvement_from_previous_period: improvement,
       previous_period_key: previousPeriodKey,
       previous_period_label: previousPeriodKey ? getAcademicPeriodLabel(previousPeriodKey) : null,
+      risk_segments: {
+        high: highRiskInCourse.length,
+        medium: mediumRiskInCourse.length,
+        low: lowRiskInCourse.length,
+      },
+      temporal_trends: {
+        p1: p1Stats.average,
+        p2: p2Stats.average,
+        p3: p3Stats.average,
+        overallDelta: p3Stats.average && p1Stats.average ? roundScore(p3Stats.average - p1Stats.average) : 0,
+      },
     }
   })
 
   const periodKeys = PERIOD_DEFINITIONS.map((period) => period.key)
   const groupOptions = [...new Set(courseCards.map((course) => course.grade_level || 'Sin grupo'))].sort((a, b) => a.localeCompare(b))
+
+  const allFinals = allRecords
+    .map((r) => toFiniteNumber(r.final_grade, NaN))
+    .filter(Number.isFinite)
+  const globalStats = computeNumericStats(allFinals)
+  const globalPassingRate = allRecords.length > 0 ? roundScore((allRecords.filter((r) => toFiniteNumber(r.final_grade, 0) >= PASSING_GRADE).length / allRecords.length) * 100) : 0
 
   return {
     courses: courseCards,
@@ -222,6 +303,18 @@ export function buildCoursePerformanceCatalog({ courses = [], enrollments = [], 
     periodKeys,
     periodOptions: periodKeys.map((key) => ({ key, label: getAcademicPeriodLabel(key) })),
     groupOptions,
+    macroSummary: {
+      totalStudents: allRecords.length,
+      averageFinalGrade: globalStats.average,
+      medianFinalGrade: globalStats.median,
+      passingRate: globalPassingRate,
+      riskSegments: {
+        high: globalHighRiskCount,
+        medium: globalMediumRiskCount,
+        low: globalLowRiskCount,
+        highRiskStudentsList: globalHighRiskStudents,
+      },
+    },
   }
 }
 
@@ -261,3 +354,4 @@ export function filterCourseRecords(records, {
     return true
   })
 }
+

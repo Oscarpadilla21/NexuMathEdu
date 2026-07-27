@@ -5,6 +5,7 @@ import {
   getChatRoleProfile,
   getChatToneOptions,
   getChatTopicOptions,
+  getChatScaffoldingOptions,
   normalizeChatProvider,
 } from '../../utils/chatPresets'
 
@@ -54,6 +55,26 @@ export default function ChatSettingsPanel({
       )}
 
       <div className="mt-4 space-y-4 overflow-y-auto pr-1">
+        {/* Nivel Micro: Andamiaje Adaptativo */}
+        <label className="block">
+          <span className="mb-2 flex items-center justify-between text-xs font-bold uppercase tracking-[0.18em] text-[#9d31ff]">
+            <span>Nivel de Ayuda (Andamiaje)</span>
+            <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] text-purple-700 font-bold">Micro Tutor</span>
+          </span>
+          <select
+            value={settings.scaffolding || 'socratico'}
+            onChange={(e) => onChange({ scaffolding: e.target.value })}
+            disabled={disabled}
+            className="w-full rounded-2xl border border-purple-200 bg-purple-50/30 px-4 py-3 text-sm font-semibold text-slate-900 outline-none transition focus:border-[#9d31ff] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {getChatScaffoldingOptions().map((scaffolding) => (
+              <option key={scaffolding.value} value={scaffolding.value}>
+                {scaffolding.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
         <label className="block">
           <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Tono</span>
           <select

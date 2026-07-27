@@ -64,6 +64,15 @@ export function getChatTopicOptions() {
   ]
 }
 
+export function getChatScaffoldingOptions() {
+  return [
+    { value: 'pista', label: 'Pista Inicial (Concepto sin respuesta)' },
+    { value: 'socratico', label: 'Pregunta Socrática (Guía interactiva)' },
+    { value: 'paso_a_paso', label: 'Desglose Paso a Paso (Procedimiento)' },
+    { value: 'explicacion_completa', label: 'Explicación Conceptual Completa' },
+  ]
+}
+
 export function buildDefaultChatSettings(role, provider) {
   const profile = getChatRoleProfile(role)
 
@@ -76,6 +85,7 @@ export function buildDefaultChatSettings(role, provider) {
       language: 'espanol',
       provider: 'profesor_1',
       topic: 'general',
+      scaffolding: 'explicacion_completa',
     },
     teacher: {
       tone: 'cercano',
@@ -84,6 +94,7 @@ export function buildDefaultChatSettings(role, provider) {
       language: 'espanol',
       provider: 'profesor_2',
       topic: 'general',
+      scaffolding: 'explicacion_completa',
     },
     student: {
       tone: 'claro',
@@ -92,6 +103,7 @@ export function buildDefaultChatSettings(role, provider) {
       language: 'espanol',
       provider: 'profesor_1',
       topic: 'general',
+      scaffolding: 'socratico',
     },
   }
 
@@ -112,3 +124,4 @@ export function formatThreadLabel(thread) {
 
   return thread.title
 }
+

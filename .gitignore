@@ -1,32 +1,53 @@
-# Logs
-logs
-*.log
+# Dependencies & Package Managers
+node_modules/
+.pnpm-store/
+.pnpm-debug.log*
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# Skills, Agents & IDE Local Configs
+.agents/
+.agent/
+skills-lock.json
+.gemini/
+
+# Build Outputs & Bundles
+dist/
+dist-ssr/
+build/
+out/
+.temp/
+supabase/.temp/
+
+# Deployment & Cloudflare / Wrangler
+.wrangler/
+.dev.vars*
+!.dev.vars.example
+
+# Environment & Secret files
+.env
+.env.*
+!.env.example
 *.local
 
-# Editor directories and files
-.vscode/*
+# Logs
+logs/
+*.log
+
+# Editor & OS files
+.vscode/
 !.vscode/extensions.json
-.idea
-.DS_Store
+.idea/
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-*.env
+.DS_Store
+Thumbs.db
 
-# wrangler files
-.wrangler
-.dev.vars*
-!.dev.vars.example
-.env*
-!.env.example
+# Cache & Temporary Files
+.cache/
+*.tmp

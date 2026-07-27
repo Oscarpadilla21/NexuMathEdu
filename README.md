@@ -1,16 +1,32 @@
-# React + Vite
+# NexuMathEdu
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+NexuMathEdu es una aplicacion web para gestion educativa con roles de administrador, profesor y estudiante.
 
-Currently, two official plugins are available:
+## Estructura
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- `src/main.jsx`: arranque de React y montaje de la aplicacion.
+- `src/App.jsx`: define rutas publicas, protegidas y redireccion por rol.
+- `src/contexts/AuthContext.jsx`: estado global de autenticacion y perfil.
+- `src/pages/`: pantallas principales para login, perfil, chat y dashboards.
+- `src/components/`: componentes reutilizables de interfaz y formularios.
+- `src/lib/supabase.js`: cliente central de Supabase.
+- `src/lib/chatClient.js`: cliente para consultar el endpoint de chat.
+- `src/utils/`: utilidades de roles, grados y presets del chat.
+- `supabase/schema.sql`: esquema base de la base de datos.
+- `supabase/functions/`: funciones serverless para autenticacion, chat y dashboards.
 
-## React Compiler
+## Flujo general
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1. El usuario inicia sesion y el contexto de autenticacion resuelve su rol.
+2. `App.jsx` dirige a la vista correspondiente segun el rol detectado.
+3. Los dashboards cargan datos desde Supabase mediante funciones de servidor.
+4. La vista de chat guarda conversaciones, mensajes y preferencias por usuario.
 
-## Expanding the ESLint configuration
+## Carga local
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Instala dependencias y ejecuta el proyecto con el gestor que prefieras del repositorio.
+
+## Notas
+
+- La base de datos y las funciones del servidor viven dentro de `supabase/`.
+- El proyecto usa Vite y React.

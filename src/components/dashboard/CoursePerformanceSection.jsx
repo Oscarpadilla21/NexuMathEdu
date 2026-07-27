@@ -90,6 +90,7 @@ export default function CoursePerformanceSection({
             {scopeLabel ? (
               <span className="rounded-full bg-[#f8faff] px-2.5 py-1 text-[11px] font-semibold text-slate-500">{scopeLabel}</span>
             ) : null}
+            <span className="rounded-full bg-purple-100 px-2.5 py-1 text-[11px] font-bold text-purple-700">Nivel Macro: Analítica Descriptiva y Predictiva</span>
           </div>
           <p className="text-sm text-slate-500">{description}</p>
         </div>
@@ -98,6 +99,70 @@ export default function CoursePerformanceSection({
           {catalog.periodOptions.length > 0 ? `${catalog.periodOptions.length} periodos detectados` : 'Sin periodos detectados'}
         </div>
       </div>
+
+      {/* Panel Resumen de Nivel Macro (Analítica Descriptiva y Predictiva) */}
+      {catalog.macroSummary && (
+        <div className="border-b border-[#ece8f6] bg-gradient-to-r from-purple-50/50 via-slate-50 to-pink-50/30 p-5 sm:p-6">
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#9d31ff]">
+            Panel Macro-Analítico Consolidado
+          </p>
+          <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {/* 1. Patrones de Rendimiento */}
+            <div className="rounded-2xl border border-purple-100 bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Patrones de Rendimiento</span>
+                <span className="rounded-full bg-purple-50 p-1.5 text-purple-600">📊</span>
+              </div>
+              <p className="mt-2 text-2xl font-bold text-slate-900">{catalog.macroSummary.averageFinalGrade}</p>
+              <p className="mt-1 text-xs text-slate-500">
+                Promedio general • <strong className="text-emerald-600">{catalog.macroSummary.passingRate}% aprobados</strong>
+              </p>
+            </div>
+
+            {/* 2. Tendencias Temporales */}
+            <div className="rounded-2xl border border-blue-100 bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tendencias Temporales</span>
+                <span className="rounded-full bg-blue-50 p-1.5 text-blue-600">📈</span>
+              </div>
+              <p className="mt-2 text-2xl font-bold text-slate-900">P1 ➔ P2 ➔ P3</p>
+              <p className="mt-1 text-xs text-slate-500">
+                Seguimiento continuo de evolución por periodo escolar
+              </p>
+            </div>
+
+            {/* 3. Segmentos de Riesgo */}
+            <div className="rounded-2xl border border-rose-100 bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Segmentos de Riesgo</span>
+                <span className="rounded-full bg-rose-50 p-1.5 text-rose-600">⚠️</span>
+              </div>
+              <div className="mt-2 flex items-center gap-2">
+                <span className="rounded-md bg-rose-100 px-2 py-0.5 text-xs font-bold text-rose-700">
+                  {catalog.macroSummary.riskSegments.high} Alto
+                </span>
+                <span className="rounded-md bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-700">
+                  {catalog.macroSummary.riskSegments.medium} Medio
+                </span>
+                <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-700">
+                  {catalog.macroSummary.riskSegments.low} Bajo
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-slate-500">Clasificación predictiva para alerta temprana</p>
+            </div>
+
+            {/* 4. Variables Asociadas */}
+            <div className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Variables de Desempeño</span>
+                <span className="rounded-full bg-emerald-50 p-1.5 text-emerald-600">🔍</span>
+              </div>
+              <p className="mt-2 text-sm font-bold text-slate-800">Asistencia + Tutoría Micro</p>
+              <p className="mt-1 text-xs text-slate-500">Factores correlacionados al resultado académico</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {catalog.courses.length > 0 ? (
         <div className="grid gap-4 p-5 sm:p-6 lg:grid-cols-2 xl:grid-cols-3">
@@ -134,6 +199,22 @@ export default function CoursePerformanceSection({
                     tone={course.improvement_from_previous_period === null ? 'slate' : course.improvement_from_previous_period >= 0 ? 'emerald' : 'slate'}
                   />
                 </div>
+
+                {/* Badges de Segmentos de Riesgo por Curso */}
+                {course.risk_segments && (
+                  <div className="mt-3 flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-200/60 text-xs">
+                    <span className="text-[11px] font-medium text-slate-400">Riesgo:</span>
+                    <span className="rounded-full bg-rose-100/80 px-2 py-0.5 text-[11px] font-bold text-rose-700">
+                      {course.risk_segments.high} Alto
+                    </span>
+                    <span className="rounded-full bg-amber-100/80 px-2 py-0.5 text-[11px] font-bold text-amber-700">
+                      {course.risk_segments.medium} Medio
+                    </span>
+                    <span className="rounded-full bg-emerald-100/80 px-2 py-0.5 text-[11px] font-bold text-emerald-700">
+                      {course.risk_segments.low} Bajo
+                    </span>
+                  </div>
+                )}
               </div>
 
               <button
@@ -142,7 +223,7 @@ export default function CoursePerformanceSection({
                 className="mt-5 inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#9d31ff] to-[#ff318c] px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:brightness-110"
               >
                 <TrendingUp className="h-4 w-4" />
-                Ver rendimiento del curso
+                Ver analítica detallada del curso
               </button>
             </article>
           ))}
