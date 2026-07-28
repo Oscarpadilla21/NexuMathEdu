@@ -392,6 +392,7 @@ function CoursePerformanceModal({ open, course, catalog, analysisMode, onModeCha
 
         {activeView === 'courses' ? (
           <CourseComparisonView
+            activeCourse={course}
             catalog={catalog}
             selectedCourseIds={selectedCourseIds}
             setSelectedCourseIds={setSelectedCourseIds}
@@ -441,6 +442,7 @@ function CoursePerformanceModal({ open, course, catalog, analysisMode, onModeCha
 }
 
 function CourseComparisonView({
+  activeCourse,
   catalog,
   selectedCourseIds,
   setSelectedCourseIds,
@@ -464,9 +466,10 @@ function CourseComparisonView({
 }) {
   useEffect(() => {
     if (selectedCourseIds.length === 0 && catalog.courses.length > 0) {
-      setSelectedCourseIds([catalog.courses[0].id])
+      const initialId = activeCourse?.id || catalog.courses[0].id
+      setSelectedCourseIds([initialId])
     }
-  }, [catalog.courses, selectedCourseIds, setSelectedCourseIds])
+  }, [activeCourse, catalog.courses, selectedCourseIds, setSelectedCourseIds])
 
   const chartData = useMemo(() => buildComparisonChartData({ chartType, selectedCourses, selectedPeriodKeys, filteredCourseRecords }), [
     chartType,
@@ -515,12 +518,10 @@ function CourseComparisonView({
   }
 
   const selectSameGradeCourses = () => {
-    if (selectedCourseIds.length > 0) {
-      const firstCourse = catalog.courses.find((c) => c.id === selectedCourseIds[0])
-      if (firstCourse?.grade_level) {
-        const sameGradeIds = catalog.courses.filter((c) => c.grade_level === firstCourse.grade_level).map((c) => c.id)
-        setSelectedCourseIds(sameGradeIds)
-      }
+    const targetGrade = activeCourse?.grade_level || catalog.courses.find((c) => c.id === selectedCourseIds[0])?.grade_level
+    if (targetGrade) {
+      const sameGradeIds = catalog.courses.filter((c) => c.grade_level === targetGrade).map((c) => c.id)
+      if (sameGradeIds.length > 0) setSelectedCourseIds(sameGradeIds)
     }
   }
 
@@ -857,9 +858,12 @@ function StudentPerformanceView({
   })
   
   const filteredCards = studentCards.filter((record) => {
-    // Filtro por grupo
-    if (selectedGroup !== 'all' && (record.course_grade_level || 'Sin grupo') !== selectedGroup) {
-      return false
+    // Filtro por nivel de riesgo
+    if (selectedGroup !== 'all') {
+      const riskLevel = record.risk?.level || 'bajo'
+      if (selectedGroup === 'alto' && riskLevel !== 'alto') return false
+      if (selectedGroup === 'medio' && riskLevel !== 'medio') return false
+      if (selectedGroup === 'bajo' && riskLevel !== 'bajo') return false
     }
 
     // Filtro por rango de nota
@@ -1068,18 +1072,16 @@ function StudentPerformanceView({
           <PanelCard title="Filtros">
             <div className="space-y-3">
               <label className="block">
-                <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Grupo / grado</span>
+                <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Filtrar por nivel de riesgo</span>
                 <select
                   value={selectedGroup}
                   onChange={(e) => setSelectedGroup(e.target.value)}
-                  className="w-full rounded-2xl border border-[#ece8f6] bg-white px-3 py-3 text-sm outline-none"
+                  className="w-full rounded-2xl border border-[#ece8f6] bg-white px-3 py-3 text-sm outline-none font-medium text-slate-800"
                 >
-                  <option value="all">Todos</option>
-                  {[...new Set(studentRecords.map((record) => record.course_grade_level || 'Sin grupo'))].map((group) => (
-                    <option key={group} value={group}>
-                      {group}
-                    </option>
-                  ))}
+                  <option value="all">Todos los alumnos ({studentRecords.length})</option>
+                  <option value="alto">🔴 Solo Riesgo Alto</option>
+                  <option value="medio">🟡 Solo Riesgo Medio</option>
+                  <option value="bajo">🟢 Solo Riesgo Bajo</option>
                 </select>
               </label>
 
