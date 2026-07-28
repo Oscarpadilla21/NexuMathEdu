@@ -58,22 +58,34 @@ export const AuthProvider = ({ children }) => {
       return profilePromiseCacheRef.current
     }
 
-    const promise = (async () => {
-      // Primero intentamos leer el perfil desde la tabla; si falla, caemos a metadata.
-      const fallbackRole =
-        userRecord?.app_metadata?.role ||
-        profileRef.current?.role ||
-        'student'
-      const fallbackFullName =
-        userRecord?.user_metadata?.full_name ||
-        userRecord?.email ||
-        profileRef.current?.full_name ||
-        'Sin nombre'
+    const fallbackRole =
+      userRecord?.user_metadata?.role ||
+      userRecord?.app_metadata?.role ||
+      profileRef.current?.role ||
+      'student'
+    const fallbackFullName =
+      userRecord?.user_metadata?.full_name ||
+      userRecord?.email ||
+      profileRef.current?.full_name ||
+      'Sin nombre'
 
+    const fallbackProfile = {
+      id: userRecord.id,
+      email: userRecord.email,
+      full_name: fallbackFullName,
+      role: fallbackRole,
+    }
+
+    // Establecemos de inmediato el perfil base con la metadata para evitar demoras en UI
+    if (!profileRef.current) {
+      setProfile(fallbackProfile)
+    }
+
+    const promise = (async () => {
       try {
         const { data, error } = await withTimeout(
           supabase.from('profiles').select('*').eq('id', userRecord.id).maybeSingle(),
-          45000,
+          6000,
           'La consulta del perfil tardó demasiado'
         )
 
@@ -84,36 +96,17 @@ export const AuthProvider = ({ children }) => {
         }
 
         if (profileRef.current?.id === userRecord.id) {
-          console.info('Keeping existing cached profile for current user instead of fallback.')
           return profileRef.current
         }
 
         if (error) {
-          console.warn('Profile query error:', error.message)
+          console.warn('Profile query warning:', error.message)
         }
       } catch (error) {
-        console.warn(
-          'Profile lookup failed, using auth metadata fallback.',
-          error instanceof Error ? error.message : error
-        )
+        console.warn('Profile lookup timeout/fallback active. Using auth metadata role:', fallbackRole)
         if (profileRef.current?.id === userRecord.id) {
-          console.info('Keeping existing cached profile for current user instead of fallback.')
           return profileRef.current
         }
-      }
-
-      console.info(
-        'Using auth metadata fallback. Role:',
-        fallbackRole,
-        'Email:',
-        userRecord.email
-      )
-
-      const fallbackProfile = {
-        id: userRecord.id,
-        email: userRecord.email,
-        full_name: fallbackFullName,
-        role: fallbackRole,
       }
 
       setProfile(fallbackProfile)
@@ -147,7 +140,6 @@ export const AuthProvider = ({ children }) => {
     }
 
     const initializeAuth = async () => {
-      // Resolvemos la sesion actual cuando la app arranca.
       if (isMounted) setLoading(true)
 
       try {
@@ -155,7 +147,7 @@ export const AuthProvider = ({ children }) => {
           data: { session },
         } = await withTimeout(
           supabase.auth.getSession(),
-          45000,
+          6000,
           'La verificación de sesión tardó demasiado'
         )
 
@@ -177,7 +169,7 @@ export const AuthProvider = ({ children }) => {
           clearAuthState()
         }
       } catch (error) {
-        console.error('Failed to initialize auth session', error)
+        console.warn('Fast auth initialization fallback activated:', error?.message)
       } finally {
         if (isMounted) setLoading(false)
       }
