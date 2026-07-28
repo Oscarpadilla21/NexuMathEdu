@@ -49,14 +49,15 @@ export function getAttendanceValue(record) {
   const found = candidates.find((value) => value !== undefined && value !== null && value !== '')
   if (found !== undefined) return toFiniteNumber(found, 0)
 
-  return toFiniteNumber(record?.note_1, 0)
+  return null
 }
 
 export function getGradeMetricValue(record, metric) {
   if (!record) return 0
 
   if (metric === 'attendance') {
-    return getAttendanceValue(record)
+    const att = getAttendanceValue(record)
+    return att !== null ? att : 100
   }
 
   return toFiniteNumber(record[metric], 0)
@@ -127,12 +128,16 @@ export function getStudentRiskSegment(record) {
     drop = p1 - p2
   }
 
-  if (finalGrade < 3.0 || (attendance > 0 && attendance < 70) || drop >= 0.8) {
+  const isFailingGrade = finalGrade < 3.0
+  const isCriticalAttendance = attendance !== null && attendance >= 0 && attendance < 70
+  const isSevereDrop = drop >= 0.8
+
+  if (isFailingGrade || isCriticalAttendance || isSevereDrop) {
     return {
       level: 'alto',
       label: 'Riesgo Alto',
       badgeTone: 'rose',
-      reason: finalGrade < 3.0 ? 'Nota promedio reprobatoria' : drop >= 0.8 ? 'Tendencia en descenso severo' : 'Asistencia crítica',
+      reason: isFailingGrade ? 'Nota promedio reprobatoria' : isSevereDrop ? 'Tendencia en descenso severo' : 'Asistencia crítica',
     }
   }
 
@@ -332,8 +337,10 @@ export function filterCourseRecords(records, {
   return records.filter((record) => {
     const value = getGradeMetricValue(record, evaluationMetric)
 
-    if (periodSet.size > 0 && !periodSet.has(record.period_key)) {
-      return false
+    if (periodSet.size > 0 && evaluationMetric.startsWith('note_')) {
+      if (!periodSet.has(evaluationMetric)) {
+        return false
+      }
     }
 
     if (selectedGroup !== 'all') {

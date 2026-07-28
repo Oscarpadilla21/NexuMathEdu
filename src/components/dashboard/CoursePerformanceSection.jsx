@@ -1397,7 +1397,7 @@ function buildComparisonChartData({ chartType, selectedCourses, selectedPeriodKe
     const series = selectedCourses.map((course, index) => ({
       name: course.title,
       data: (course.records || []).map((record) => ({
-        x: Number(getAttendanceValue(record) || 0),
+        x: Number(getAttendanceValue(record) ?? 100),
         y: Number(record.final_grade || 0),
         student_name: record.student_name,
         student_email: record.student_email,
@@ -1446,7 +1446,7 @@ function buildComparisonChartOptions(chartData, chartType, selectedPeriodKeys) {
           },
           xaxis: {
             min: 0,
-            max: 5,
+            max: 100,
           },
           yaxis: {
             min: 0,
@@ -1465,10 +1465,13 @@ function buildComparisonChartOptions(chartData, chartType, selectedPeriodKeys) {
       },
       xaxis: {
         title: {
-          text: 'Asistencia',
+          text: 'Asistencia (%)',
         },
         min: 0,
-        max: 5,
+        max: 100,
+        labels: {
+          formatter: (val) => `${val}%`,
+        },
       },
       yaxis: {
         title: {
