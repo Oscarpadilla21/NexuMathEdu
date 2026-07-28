@@ -170,8 +170,8 @@ export const AuthProvider = ({ children }) => {
 
         if (session?.user) {
           setSession(session)
-          setUser(session.user)
           await fetchProfile(session.user)
+          setUser(session.user)
           recordActivity()
         } else {
           clearAuthState()
@@ -206,12 +206,10 @@ export const AuthProvider = ({ children }) => {
 
         if (session?.user) {
           setSession(session)
-          setUser(session.user)
-          if (event === 'TOKEN_REFRESHED') {
-            return
+          if (event !== 'TOKEN_REFRESHED') {
+            await fetchProfile(session.user)
           }
-
-          await fetchProfile(session.user)
+          setUser(session.user)
           recordActivity()
         } else {
           clearAuthState()
@@ -268,15 +266,15 @@ export const AuthProvider = ({ children }) => {
 
       if (data?.session?.user) {
         setSession(data.session)
+        const userProfile = await fetchProfile(data.session.user)
         setUser(data.session.user)
+        recordActivity()
         console.info(
           'User logged in:',
           data.session.user.email,
           'role:',
-          data.session.user.user_metadata?.role
+          userProfile?.role || data.session.user.user_metadata?.role
         )
-        await fetchProfile(data.session.user)
-        recordActivity()
       }
 
       return data

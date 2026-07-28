@@ -28,12 +28,8 @@ const Login = () => {
 
   useEffect(() => {
     if (isAuthenticated && role) {
-      navigate(getRouteForRole(role, isAuthenticated), { replace: true });
-      return;
-    }
-
-    if (isAuthenticated && !authLoading) {
-      navigate('/perfil', { replace: true });
+      const targetRoute = getRouteForRole(role, isAuthenticated);
+      navigate(targetRoute, { replace: true });
     }
   }, [authLoading, isAuthenticated, navigate, role]);
 

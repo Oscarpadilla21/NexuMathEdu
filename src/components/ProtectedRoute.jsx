@@ -1,5 +1,6 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { getRouteForRole } from "../utils/roleRoutes";
 
 export const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   const { isAuthenticated, role, loading } = useAuth();
@@ -14,14 +15,10 @@ export const ProtectedRoute = ({ children, allowedRoles = [] }) => {
     return <Navigate to="/login" replace />;
   }
 
-  if (loading) {
-    if (isRoleAgnosticRoute) {
-      return children;
-    }
-
+  if (loading || (!role && !isRoleAgnosticRoute)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-white">
-        <p className="text-sm text-slate-600">Cargando sesión...</p>
+        <p className="text-sm text-slate-600">Cargando perfil...</p>
       </div>
     );
   }
@@ -30,13 +27,9 @@ export const ProtectedRoute = ({ children, allowedRoles = [] }) => {
     return children;
   }
 
-  if (!role) {
-    return <Navigate to="/perfil" replace />;
-  }
-
-  // Si la ruta exige roles concretos, bloqueamos cualquier otro.
+  // Si la ruta exige roles concretos, redirigimos al tablero correspondiente al rol.
   if (allowedRoles.length > 0 && !allowedRoles.includes(role)) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={getRouteForRole(role, isAuthenticated)} replace />;
   }
 
   return children;
