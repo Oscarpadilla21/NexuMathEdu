@@ -1,11 +1,38 @@
 import { SendHorizonal, WandSparkles, Calculator } from 'lucide-react'
 import { useRef, useState } from 'react'
 
-const QUICK_PROMPTS = [
-  'Explícame el tema como si fuera mi primera vez.',
-  'Dame un ejercicio resuelto paso a paso.',
-  'Resume la idea principal en 3 puntos.',
-]
+const QUICK_PROMPTS_BY_TOPIC = {
+  general: [
+    'Explícame este tema paso a paso.',
+    'Dame un ejercicio resuelto.',
+    'Resume la idea principal en 3 puntos.',
+  ],
+  aritmetica: [
+    'Cálculo de porcentajes y regla de tres.',
+    'Operaciones con fracciones compuestas.',
+    'Ejercicios de Mínimo Común Múltiplo (MCM).',
+  ],
+  algebra: [
+    'Resolver ecuación cuadrática con fórmula general.',
+    'Factorización por productos notables.',
+    'Sistemas de ecuaciones 2x2 paso a paso.',
+  ],
+  geometria: [
+    'Teorema de Pitágoras con ejemplo gráfico.',
+    'Área y perímetro de círculos y triángulos.',
+    'Cálculo de volumen de cilindros y esferas.',
+  ],
+  trigonometria: [
+    'Razones trigonométricas (sen, cos, tan).',
+    'Identidades trigonométricas básicas.',
+    'Ley de Senos y Cosenos con ejemplo.',
+  ],
+  calculo: [
+    'Concepto de límite y derivadas paso a paso.',
+    'Regla de la cadena e integración por sustitución.',
+    'Hallar máximos y mínimos de una función.',
+  ],
+}
 
 const KEYBOARD_ROWS = [
   ['sin', 'cos', 'tan', '√', 'x²'],
@@ -16,10 +43,12 @@ const KEYBOARD_ROWS = [
   ['C', '0', '.', '±', '='],
 ]
 
-export default function ChatComposer({ onSend, placeholder, disabled, sending }) {
+export default function ChatComposer({ onSend, placeholder, disabled, sending, topic = 'general' }) {
   const [value, setValue] = useState('')
   const [showKeyboard, setShowKeyboard] = useState(false)
   const textareaRef = useRef(null)
+
+  const activePrompts = QUICK_PROMPTS_BY_TOPIC[topic] || QUICK_PROMPTS_BY_TOPIC.general
 
   const submitMessage = async (text) => {
     const content = String(text || value).trim()
@@ -101,7 +130,7 @@ export default function ChatComposer({ onSend, placeholder, disabled, sending })
     <div className="bg-white/95 px-3 pb-3 pt-2 sm:px-4 sm:pb-4 sm:pt-2.5">
       {/* Quick prompts — solo visibles en sm+ para no consumir espacio en móvil */}
       <div className="mb-2 hidden flex-wrap gap-1.5 sm:flex">
-        {QUICK_PROMPTS.map((prompt) => (
+        {activePrompts.map((prompt) => (
           <button
             key={prompt}
             type="button"

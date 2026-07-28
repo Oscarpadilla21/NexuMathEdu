@@ -14,13 +14,16 @@
     "@supabase/supabase-js": "^2.105.4",
     "@tailwindcss/vite": "^4.2.4",
     "apexcharts": "^5.13.0",
+    "katex": "^0.18.1",
     "lucide-react": "^1.14.0",
     "mathjs": "^15.2.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.15.0",
+    "rehype-katex": "^7.0.1",
     "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0",
     "tailwindcss": "^4.2.4"
   },
   "devDependencies": {

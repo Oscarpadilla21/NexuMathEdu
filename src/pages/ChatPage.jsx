@@ -366,6 +366,7 @@ export default function ChatPage() {
               placeholder={`Pregunta como ${roleProfile.label.toLowerCase()}...`}
               disabled={sending || !session?.access_token}
               sending={sending}
+              topic={settings?.topic || 'general'}
             />
           )}
         </div>

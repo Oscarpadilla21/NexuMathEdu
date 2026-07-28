@@ -1,5 +1,8 @@
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
+import rehypeKatex from 'rehype-katex'
+import 'katex/dist/katex.min.css'
 
 const baseClassName = 'space-y-1.5 text-[12px] leading-5 sm:text-[13px] sm:leading-[1.55]'
 
@@ -11,7 +14,8 @@ export default function MarkdownContent({ content, tone = 'light' }) {
   return (
     <div className={baseClassName}>
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={[remarkGfm, remarkMath]}
+        rehypePlugins={[rehypeKatex]}
         components={{
           p: ({ children }) => <p className="whitespace-pre-wrap break-words">{children}</p>,
           strong: ({ children }) => <strong className="font-semibold text-inherit">{children}</strong>,
