@@ -1,20 +1,30 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import ApexCharts from 'apexcharts'
 import {
   BarChart3,
+  Bot,
   CheckCircle2,
+  Download,
   Filter,
   LineChart,
+  PieChart,
   ScatterChart,
+  Sparkles,
   Table2,
+  Target,
   TrendingUp,
   X,
+  Zap,
 } from 'lucide-react'
 import {
   PASSING_GRADE,
   PERIOD_DEFINITIONS,
   buildCoursePerformanceCatalog,
+  buildRadarComparisonData,
   computeNumericStats,
+  computePerformanceMatrix,
+  downloadCSV,
   formatDelta,
   formatScore,
   getAcademicPeriodLabel,
@@ -25,12 +35,14 @@ import {
 const CHART_OPTIONS = [
   { value: 'bar', label: 'Barras', icon: BarChart3 },
   { value: 'area', label: 'Líneas', icon: LineChart },
+  { value: 'radar', label: 'Radar', icon: PieChart },
   { value: 'scatter', label: 'Dispersión', icon: ScatterChart },
   { value: 'table', label: 'Tabla', icon: Table2 },
 ]
 
 const STUDENT_CHART_OPTIONS = [
   { value: 'bar', label: 'Barras', icon: BarChart3 },
+  { value: 'area', label: 'Trayectoria', icon: LineChart },
   { value: 'scatter', label: 'Dispersión', icon: ScatterChart },
   { value: 'table', label: 'Tabla', icon: Table2 },
 ]
@@ -467,15 +479,81 @@ function CourseComparisonView({
     [chartData, chartType, selectedPeriodKeys]
   )
 
+  const handleExportCoursesCSV = () => {
+    const headers = [
+      'ID Curso',
+      'Título',
+      'Materia',
+      'Grado',
+      'Promedio General',
+      'Mediana',
+      'Aprobados',
+      'Total Alumnos',
+      'Riesgo Alto',
+      'Riesgo Medio',
+      'Bajo Riesgo',
+    ]
+    const rows = selectedCourses.map((c) => [
+      c.id,
+      c.title,
+      c.subject,
+      c.grade_level || '',
+      c.average_final,
+      c.median_final,
+      c.approved_count,
+      c.total_students,
+      c.risk_segments?.high || 0,
+      c.risk_segments?.medium || 0,
+      c.risk_segments?.low || 0,
+    ])
+    downloadCSV(`reporte_cursos_${new Date().toISOString().slice(0, 10)}.csv`, headers, rows)
+  }
+
+  const selectCoursesInRisk = () => {
+    const riskCourseIds = catalog.courses.filter((c) => (c.risk_segments?.high || 0) > 0).map((c) => c.id)
+    if (riskCourseIds.length > 0) setSelectedCourseIds(riskCourseIds)
+  }
+
+  const selectSameGradeCourses = () => {
+    if (selectedCourseIds.length > 0) {
+      const firstCourse = catalog.courses.find((c) => c.id === selectedCourseIds[0])
+      if (firstCourse?.grade_level) {
+        const sameGradeIds = catalog.courses.filter((c) => c.grade_level === firstCourse.grade_level).map((c) => c.id)
+        setSelectedCourseIds(sameGradeIds)
+      }
+    }
+  }
+
   return (
     <div className="grid min-h-0 flex-1 gap-0 lg:grid-cols-[340px_1fr]">
       <aside className="min-h-0 overflow-y-auto border-b border-[#ece8f6] bg-[#fafafa] p-4 lg:border-b-0 lg:border-r">
         <div className="space-y-4">
-          <PanelCard title="Vista">
+          <PanelCard title="Acciones y Presets">
             <div className="flex flex-wrap gap-2">
-              <span className="rounded-2xl border border-[#ece8f6] bg-white px-3 py-2 text-sm font-semibold text-slate-500">
-                Comparación de cursos
-              </span>
+              <button
+                type="button"
+                onClick={selectCoursesInRisk}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 transition"
+              >
+                <Zap className="h-3.5 w-3.5" />
+                Cursos en Riesgo
+              </button>
+              <button
+                type="button"
+                onClick={selectSameGradeCourses}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-purple-200 bg-purple-50 px-2.5 py-1.5 text-xs font-semibold text-purple-700 hover:bg-purple-100 transition"
+              >
+                <Target className="h-3.5 w-3.5" />
+                Mismo Grado
+              </button>
+              <button
+                type="button"
+                onClick={handleExportCoursesCSV}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Exportar CSV
+              </button>
             </div>
           </PanelCard>
 
@@ -848,19 +926,77 @@ function StudentPerformanceView({
 
   const filteredMetricStats = computeNumericStats(filteredCards.map((record) => getGradeMetricValue(record, evaluationMetric)))
 
+  const handleExportStudentsCSV = () => {
+    const headers = ['ID Alumno', 'Nombre', 'Correo', 'Curso', 'P1', 'P2', 'P3', 'Nota Final', 'Asistencia', 'Nivel de Riesgo', 'Motivo de Riesgo']
+    const rows = (selectedStudents.length > 0 ? selectedStudents : studentRecords).map((r) => [
+      r.student_id,
+      r.student_name,
+      r.student_email,
+      r.course_title,
+      r.note_1,
+      r.note_2,
+      r.note_3,
+      r.final_grade,
+      getAttendanceValue(r) !== null ? getAttendanceValue(r) + '%' : '100%',
+      r.risk?.label || 'Sin clasificar',
+      r.risk?.reason || '',
+    ])
+    downloadCSV(`reporte_alumnos_${new Date().toISOString().slice(0, 10)}.csv`, headers, rows)
+  }
+
+  const selectHighRiskStudents = () => {
+    const highRiskIds = studentRecords.filter((r) => r.risk?.level === 'alto').slice(0, 4).map((r) => r.student_id)
+    if (highRiskIds.length > 0) setSelectedStudentIds(highRiskIds)
+  }
+
+  const selectTopStudents = () => {
+    const topIds = [...studentRecords]
+      .sort((a, b) => Number(b.final_grade || 0) - Number(a.final_grade || 0))
+      .slice(0, 3)
+      .map((r) => r.student_id)
+    setSelectedStudentIds(topIds)
+  }
+
+  const clearSelection = () => setSelectedStudentIds([])
+
   return (
     <div className="grid min-h-0 flex-1 gap-0 lg:grid-cols-[380px_1fr]">
       <aside className="min-h-0 overflow-y-auto border-b border-[#ece8f6] bg-[#fafafa] p-4 lg:border-b-0 lg:border-r">
         <div className="space-y-4">
-          <PanelCard title="Vista">
+          <PanelCard title="Acciones y Presets">
             <div className="flex flex-wrap gap-2">
-              <span className="rounded-2xl border border-[#ece8f6] bg-white px-3 py-2 text-sm font-semibold text-slate-500">
-                {selectedStudents.length === 0
-                  ? 'Sin selección'
-                  : selectedStudents.length === 1
-                    ? 'Rendimiento individual'
-                    : `Comparación de ${selectedStudents.length} alumnos`}
-              </span>
+              <button
+                type="button"
+                onClick={selectHighRiskStudents}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 transition"
+              >
+                <Zap className="h-3.5 w-3.5" />
+                Riesgo Alto
+              </button>
+              <button
+                type="button"
+                onClick={selectTopStudents}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-purple-200 bg-purple-50 px-2.5 py-1.5 text-xs font-semibold text-purple-700 hover:bg-purple-100 transition"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                Top 3
+              </button>
+              <button
+                type="button"
+                onClick={clearSelection}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition"
+              >
+                <X className="h-3.5 w-3.5" />
+                Limpiar
+              </button>
+              <button
+                type="button"
+                onClick={handleExportStudentsCSV}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Exportar CSV
+              </button>
             </div>
           </PanelCard>
 
@@ -1033,6 +1169,8 @@ function StudentPerformanceView({
           />
           <SummaryCard label="Listado" value={filteredCards.length} helper="Alumnos disponibles" />
         </div>
+
+        <PerformanceMatrixWidget records={filteredCards} />
 
         {selectedStudents.length >= 2 && (
           <StudentComparisonTable students={selectedStudents} periodKeys={selectedPeriodKeys} />
@@ -1393,6 +1531,10 @@ function buildComparisonChartData({ chartType, selectedCourses, selectedPeriodKe
     return { series: [], categories: [] }
   }
 
+  if (chartType === 'radar') {
+    return buildRadarComparisonData(selectedCourses)
+  }
+
   if (chartType === 'scatter') {
     const series = selectedCourses.map((course, index) => ({
       name: course.title,
@@ -1424,6 +1566,41 @@ function buildComparisonChartData({ chartType, selectedCourses, selectedPeriodKe
 }
 
 function buildComparisonChartOptions(chartData, chartType, selectedPeriodKeys) {
+  if (chartType === 'radar') {
+    return {
+      chart: {
+        type: 'radar',
+        height: 440,
+      },
+      colors: CHART_COLORS,
+      xaxis: {
+        categories: chartData.categories || ['Promedio', 'Aprobación', 'Asistencia', 'Consistencia', 'Mejora'],
+      },
+      yaxis: {
+        min: 0,
+        max: 100,
+        tickAmount: 5,
+        labels: {
+          formatter: (val) => `${Math.round(val)}%`,
+        },
+      },
+      markers: {
+        size: 4,
+      },
+      tooltip: {
+        y: {
+          formatter: (val) => `${Math.round(val)}%`,
+        },
+      },
+      legend: {
+        position: 'top',
+      },
+      grid: {
+        borderColor: '#ece8f6',
+      },
+    }
+  }
+
   if (chartType === 'scatter') {
     return {
       chart: {
@@ -1776,21 +1953,117 @@ function buildStudentChartOptions(chartData, chartType) {
   }
 }
 
+function PerformanceMatrixWidget({ records = [] }) {
+  const matrix = useMemo(() => computePerformanceMatrix(records), [records])
+
+  return (
+    <div className="mt-4 rounded-[2rem] border border-[#ece8f6] bg-white p-5 shadow-sm">
+      <div className="flex items-center justify-between border-b border-[#ece8f6] pb-3">
+        <div>
+          <h4 className="text-base font-semibold text-slate-900">Matriz 2x2: Rendimiento vs Asistencia</h4>
+          <p className="text-xs text-slate-500">Segmentación cuadrántica para intervención temprana</p>
+        </div>
+        <Sparkles className="h-4 w-4 text-purple-600" />
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Cuadrante 1: Fortaleza */}
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider">Fortaleza</span>
+            <span className="rounded-full bg-emerald-200 px-2 py-0.5 text-xs font-bold text-emerald-900">{matrix.q1.length}</span>
+          </div>
+          <p className="mt-1 text-xs text-emerald-700">Alta nota (≥3.8) + Alta asis. (≥80%)</p>
+        </div>
+
+        {/* Cuadrante 2: Ausentismo */}
+        <div className="rounded-2xl border border-blue-200 bg-blue-50/50 p-4">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-blue-800 uppercase tracking-wider">Ausentismo Alerta</span>
+            <span className="rounded-full bg-blue-200 px-2 py-0.5 text-xs font-bold text-blue-900">{matrix.q2.length}</span>
+          </div>
+          <p className="mt-1 text-xs text-blue-700">Alta nota (≥3.8) + Baja asis. (&lt;80%)</p>
+        </div>
+
+        {/* Cuadrante 3: Refuerzo Pedagógico */}
+        <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-4">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-amber-800 uppercase tracking-wider">Refuerzo Requerido</span>
+            <span className="rounded-full bg-amber-200 px-2 py-0.5 text-xs font-bold text-amber-900">{matrix.q3.length}</span>
+          </div>
+          <p className="mt-1 text-xs text-amber-700">Baja nota (&lt;3.8) + Alta asis. (≥80%)</p>
+        </div>
+
+        {/* Cuadrante 4: Riesgo Crítico */}
+        <div className="rounded-2xl border border-rose-200 bg-rose-50/50 p-4">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-rose-800 uppercase tracking-wider">Riesgo Crítico</span>
+            <span className="rounded-full bg-rose-200 px-2 py-0.5 text-xs font-bold text-rose-900">{matrix.q4.length}</span>
+          </div>
+          <p className="mt-1 text-xs text-rose-700">Baja nota (&lt;3.8) + Baja asis. (&lt;80%)</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function StudentDetailCard({ record }) {
+  const navigate = useNavigate()
   if (!record) return null
+
+  const handleOpenTutorPlan = () => {
+    const promptText = `Hola Tutor IA. Necesito un plan de tutoría adaptativo y personalizado para ${record.student_name} (${record.student_email}).
+Desempeño actual:
+- P1: ${formatScore(record.note_1)}
+- P2: ${formatScore(record.note_2)}
+- P3: ${formatScore(record.note_3)}
+- Promedio Final: ${formatScore(record.final_grade)}
+- Asistencia: ${getAttendanceValue(record) !== null ? formatScore(getAttendanceValue(record)) + '%' : '100%'}
+- Diagnóstico de Riesgo: ${record.risk?.label || 'Bajo Riesgo'} (${record.risk?.reason || 'Sin observaciones'})
+
+Por favor diseña una sesión de aprendizaje adaptativa con 3 ejercicios prácticos de matemáticas enfocado en sus puntos débiles.`
+
+    navigate('/chat', { state: { initialPrompt: promptText } })
+  }
 
   return (
     <div className="rounded-[2rem] border border-[#ece8f6] bg-[#fafafa] p-5 shadow-sm">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9d31ff]">Alumno seleccionado</p>
-      <h4 className="mt-2 text-xl font-semibold text-slate-900">{record.student_name}</h4>
-      <p className="mt-1 text-sm text-slate-500">{record.student_email}</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9d31ff]">Alumno seleccionado</p>
+          <h4 className="mt-2 text-xl font-semibold text-slate-900">{record.student_name}</h4>
+          <p className="mt-1 text-sm text-slate-500">{record.student_email}</p>
+        </div>
+        {record.risk && (
+          <span
+            className={`rounded-full px-2.5 py-1 text-xs font-bold ${
+              record.risk.level === 'alto'
+                ? 'bg-rose-100 text-rose-700'
+                : record.risk.level === 'medio'
+                  ? 'bg-amber-100 text-amber-700'
+                  : 'bg-emerald-100 text-emerald-700'
+            }`}
+          >
+            {record.risk.label}
+          </span>
+        )}
+      </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+      <div className="mt-4 grid gap-3 sm:grid-cols-4">
         <MetricPill label="P1" value={formatScore(record.note_1)} tone="violet" />
         <MetricPill label="P2" value={formatScore(record.note_2)} tone="rose" />
         <MetricPill label="P3" value={formatScore(record.note_3)} tone="emerald" />
         <MetricPill label="PF" value={formatScore(record.final_grade)} tone="slate" />
       </div>
+
+      <button
+        type="button"
+        onClick={handleOpenTutorPlan}
+        className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#9d31ff] to-[#ff318c] px-4 py-2.5 text-xs font-semibold text-white shadow-md transition hover:brightness-110"
+      >
+        <Bot className="h-4 w-4" />
+        Generar Plan con Tutor IA
+      </button>
     </div>
   )
 }

@@ -362,3 +362,70 @@ export function filterCourseRecords(records, {
   })
 }
 
+export function buildRadarComparisonData(courses = []) {
+  const categories = ['Promedio (0-5)', 'Aprobación (%)', 'Asistencia (%)', 'Consistencia', 'Mejora (P1-P3)']
+  
+  const series = courses.map((course) => {
+    const total = course.total_students || course.records?.length || 1
+    const passingPct = Math.round(((course.approved_count || 0) / total) * 100)
+    const avgAttendance = Math.round(
+      computeNumericStats((course.records || []).map((r) => getGradeMetricValue(r, 'attendance'))).average
+    )
+    const consistency = Math.max(0, Math.round(100 - (course.std_final || 0) * 20))
+    const deltaP1P3 = course.temporal_trends?.overallDelta || 0
+    const normalizedDelta = Math.min(100, Math.max(0, Math.round((deltaP1P3 + 2) * 25)))
+
+    return {
+      name: course.title,
+      data: [
+        Math.round((course.average_final || 0) * 20), // Scale 0-5 to 0-100
+        passingPct,
+        avgAttendance || 90,
+        consistency,
+        normalizedDelta,
+      ],
+    }
+  })
+
+  return { categories, series }
+}
+
+export function downloadCSV(filename, headers, rows) {
+  const csvContent =
+    'data:text/csv;charset=utf-8,\uFEFF' +
+    [headers.join(','), ...rows.map((row) => row.map((cell) => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(','))].join('\n')
+
+  const encodedUri = encodeURI(csvContent)
+  const link = document.createElement('a')
+  link.setAttribute('href', encodedUri)
+  link.setAttribute('download', filename)
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
+
+export function computePerformanceMatrix(records = []) {
+  const q1 = [] // High Grade (>= 3.8), High Attendance (>= 80%)
+  const q2 = [] // High Grade (>= 3.8), Low Attendance (< 80%)
+  const q3 = [] // Low Grade (< 3.8), High Attendance (>= 80%) - Academic struggles
+  const q4 = [] // Low Grade (< 3.8), Low Attendance (< 80%) - Critical Risk
+
+  records.forEach((record) => {
+    const grade = toFiniteNumber(record.final_grade ?? record.note_3 ?? record.note_1, 0)
+    const att = getAttendanceValue(record) ?? 90
+
+    if (grade >= 3.8 && att >= 80) {
+      q1.push(record)
+    } else if (grade >= 3.8 && att < 80) {
+      q2.push(record)
+    } else if (grade < 3.8 && att >= 80) {
+      q3.push(record)
+    } else {
+      q4.push(record)
+    }
+  })
+
+  return { q1, q2, q3, q4 }
+}
+
+
