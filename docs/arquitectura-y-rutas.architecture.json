@@ -1,0 +1,197 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "NexuMathEdu: Arquitectura de Rutas y Servicios",
+    "output": "docs/arquitectura-y-rutas-interactivo.html",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "full-flow",
+        "label": "Flujo Completo de Rutas",
+        "focus": ["users", "cloudflare", "spa", "services", "edge_fn", "postgres", "ai_providers"],
+        "note": "Traza el ciclo de peticion desde la UI hasta la persistencia y la inferencia de IA."
+      },
+      {
+        "id": "auth-session",
+        "label": "Autenticacion y RBAC",
+        "focus": ["users", "spa", "auth", "postgres"],
+        "note": "Muestra la validacion de credenciales JWT, timeout de inactividad y politicas RLS."
+      },
+      {
+        "id": "ai-tutor",
+        "label": "Tutor Inteligente",
+        "focus": ["spa", "edge_fn", "ai_providers", "postgres"],
+        "note": "Orquestacion del chat con Groq/Cerebras y persistencia de mensajes con LaTeX KaTeX."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "users",
+      "type": "external",
+      "label": "Usuarios / Navegador",
+      "sublabel": "Admin, Profesor, Estudiante",
+      "pos": [40, 260],
+      "size": [140, 64]
+    },
+    {
+      "id": "cloudflare",
+      "type": "cloud",
+      "label": "Cloudflare Pages",
+      "sublabel": "Edge CDN & SPA Hosting",
+      "brand": "cloudflare",
+      "pos": [240, 260],
+      "size": [140, 64]
+    },
+    {
+      "id": "auth",
+      "type": "security",
+      "label": "Supabase Auth",
+      "sublabel": "JWT & Role Tokens",
+      "brand": "supabase",
+      "tag": "RBAC + 30m Timeout",
+      "pos": [440, 100],
+      "size": [140, 64]
+    },
+    {
+      "id": "spa",
+      "type": "frontend",
+      "label": "React 19 SPA",
+      "sublabel": "React Router 7 + Tailwind",
+      "brand": "react",
+      "tag": "KaTeX + ApexCharts",
+      "pos": [440, 260],
+      "size": [140, 64]
+    },
+    {
+      "id": "services",
+      "type": "backend",
+      "label": "Capa de Servicios",
+      "sublabel": "admin / course / dashboard",
+      "tag": "Clean Architecture",
+      "pos": [660, 260],
+      "size": [140, 64]
+    },
+    {
+      "id": "edge_fn",
+      "type": "backend",
+      "label": "Edge Functions",
+      "sublabel": "Deno Runtime :443",
+      "brand": "supabase",
+      "tag": "Chat & Admin APIs",
+      "pos": [660, 420],
+      "size": [140, 64]
+    },
+    {
+      "id": "postgres",
+      "type": "database",
+      "label": "PostgreSQL 15+",
+      "sublabel": "InitPlan RLS + 11 FK Idx",
+      "brand": "postgresql",
+      "tag": "Relational Data",
+      "pos": [880, 260],
+      "size": [140, 64]
+    },
+    {
+      "id": "ai_providers",
+      "type": "external",
+      "label": "Inferencia LLM",
+      "sublabel": "Groq & Cerebras APIs",
+      "tag": "Llama 3.1 & GPT-OSS",
+      "pos": [880, 420],
+      "size": [140, 64]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Supabase Cloud Platform (us-east)",
+      "wraps": ["auth", "services", "edge_fn", "postgres"]
+    }
+  ],
+  "connections": [
+    {
+      "id": "users-cf",
+      "from": "users",
+      "to": "cloudflare",
+      "label": "HTTPS :443",
+      "variant": "emphasis"
+    },
+    {
+      "id": "cf-spa",
+      "from": "cloudflare",
+      "to": "spa",
+      "label": "Entrega SPA"
+    },
+    {
+      "id": "spa-auth",
+      "from": "spa",
+      "to": "auth",
+      "label": "Sesion & JWT",
+      "variant": "security",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "spa-services",
+      "from": "spa",
+      "to": "services",
+      "label": "Invocacion UI"
+    },
+    {
+      "id": "services-db",
+      "from": "services",
+      "to": "postgres",
+      "label": "SQL con RLS"
+    },
+    {
+      "id": "spa-edge",
+      "from": "spa",
+      "to": "edge_fn",
+      "label": "POST /chat",
+      "fromSide": "bottom",
+      "toSide": "left"
+    },
+    {
+      "id": "edge-db",
+      "from": "edge_fn",
+      "to": "postgres",
+      "label": "Service Role",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "edge-ai",
+      "from": "edge_fn",
+      "to": "ai_providers",
+      "label": "REST API"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Capa Cliente & CDN",
+      "items": [
+        "Cloudflare Pages sirve la SPA optimizada con soporte SPA routing",
+        "React 19 + React Router DOM v7 con control de acceso por rol (/admin, /teacher, /student, /chat)"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Backend BaaS & Persistencia",
+      "items": [
+        "Capa de servicios desacoplada (adminService, courseService, dashboardService)",
+        "PostgreSQL con 11 indices B-Tree y politicas RLS aceleradas via subconsultas InitPlan"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Tutor IA y Edge Functions",
+      "items": [
+        "Edge Functions en Deno para chat y operaciones con permisos elevados",
+        "Inferencia dual: Groq (Llama 3.1 8B Instant) y Cerebras (GPT-OSS 120B) con formulas KaTeX"
+      ]
+    }
+  ]
+}

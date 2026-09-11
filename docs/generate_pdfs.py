@@ -506,6 +506,14 @@ if __name__ == "__main__":
             "subtitle": "Memoria Técnica y Arquitectura de Software",
             "version": "2.0.0 (Proyecto de Grado)",
             "date": "Septiembre, 2026"
+        },
+        {
+            "md": os.path.join(docs_dir, "rutas-contexto-ia-actualizado.md"),
+            "pdf": os.path.join(docs_dir, "arquitectura-y-rutas-actualizado.pdf"),
+            "title": "Arquitectura y Rutas (Actualizado)",
+            "subtitle": "Documentación Técnica del Sistema v1.1",
+            "version": "1.1.0 (Actualizada - AGY)",
+            "date": "Septiembre, 2026"
         }
     ]
     
