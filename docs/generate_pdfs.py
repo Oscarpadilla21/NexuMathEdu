@@ -64,7 +64,7 @@ class PremiumPDF(FPDF):
         self.cell(0, 10, f"© 2026 NexuMathEdu. Todos los derechos reservados.", 0, 0, 'L')
         self.cell(0, 10, f"Página {self.page_no()}", 0, 0, 'R')
 
-    def draw_cover_page(self, subtitle="Manual de Usuario"):
+    def draw_cover_page(self, subtitle="Manual de Usuario", version="1.0.0 (Estable)", date_str="Junio, 2026"):
         self.add_page()
         
         # Fondo decorativo lateral
@@ -97,9 +97,9 @@ class PremiumPDF(FPDF):
         self.set_x(45)
         self.cell(0, 6, f"Autor: {self.author_name}", 0, 1)
         self.set_x(45)
-        self.cell(0, 6, "Versión: 1.0.0 (Estable)", 0, 1)
+        self.cell(0, 6, f"Versión: {version}", 0, 1)
         self.set_x(45)
-        self.cell(0, 6, "Fecha de publicación: Junio, 2026", 0, 1)
+        self.cell(0, 6, f"Fecha de publicación: {date_str}", 0, 1)
         
         # Salto de página para el contenido
         self.add_page()
@@ -136,14 +136,14 @@ def clean_markdown_text(text):
     return text.strip()
 
 
-def parse_and_generate_pdf(md_filepath, pdf_filepath, doc_title, doc_subtitle):
+def parse_and_generate_pdf(md_filepath, pdf_filepath, doc_title, doc_subtitle, version="1.0.0 (Estable)", date_str="Junio, 2026"):
     print(f"Procesando {md_filepath}...")
     
     with open(md_filepath, 'r', encoding='utf-8') as f:
         lines = f.readlines()
 
     pdf = PremiumPDF(doc_title=doc_title)
-    pdf.draw_cover_page(subtitle=doc_subtitle)
+    pdf.draw_cover_page(subtitle=doc_subtitle, version=version, date_str=date_str)
     
     in_code_block = False
     code_lines = []
@@ -447,56 +447,79 @@ if __name__ == "__main__":
             "md": os.path.join(docs_dir, "manual-admin.md"),
             "pdf": os.path.join(docs_dir, "manual-admin.pdf"),
             "title": "Manual del Administrador",
-            "subtitle": "Guía de Usuario — Rol Administrador"
+            "subtitle": "Guía de Usuario — Rol Administrador",
+            "version": "1.0.0 (Estable)",
+            "date": "Junio, 2026"
         },
         {
             "md": os.path.join(docs_dir, "manual-profesor.md"),
             "pdf": os.path.join(docs_dir, "manual-profesor.pdf"),
             "title": "Manual del Profesor",
-            "subtitle": "Guía de Usuario — Rol Profesor"
+            "subtitle": "Guía de Usuario — Rol Profesor",
+            "version": "1.0.0 (Estable)",
+            "date": "Junio, 2026"
         },
         {
             "md": os.path.join(docs_dir, "manual-estudiante.md"),
             "pdf": os.path.join(docs_dir, "manual-estudiante.pdf"),
             "title": "Manual del Estudiante",
-            "subtitle": "Guía de Usuario — Rol Estudiante"
+            "subtitle": "Guía de Usuario — Rol Estudiante",
+            "version": "1.0.0 (Estable)",
+            "date": "Junio, 2026"
         },
         {
             "md": os.path.join(docs_dir, "rutas-contexto-ia.md"),
             "pdf": os.path.join(docs_dir, "arquitectura-y-rutas.pdf"),
             "title": "Arquitectura y Rutas",
-            "subtitle": "Documentación Técnica del Sistema"
+            "subtitle": "Documentación Técnica del Sistema",
+            "version": "1.0.0 (Estable)",
+            "date": "Junio, 2026"
         },
         {
             "md": os.path.join(docs_dir, "manual-admin-actualizado.md"),
             "pdf": os.path.join(docs_dir, "manual-admin-actualizado.pdf"),
             "title": "Manual del Administrador (Actualizado)",
-            "subtitle": "Guía de Usuario — Rol Administrador v1.1"
+            "subtitle": "Guía de Usuario — Rol Administrador v1.1",
+            "version": "1.1.0 (Actualizada - AGY)",
+            "date": "Septiembre, 2026"
         },
         {
             "md": os.path.join(docs_dir, "manual-profesor-actualizado.md"),
             "pdf": os.path.join(docs_dir, "manual-profesor-actualizado.pdf"),
             "title": "Manual del Profesor (Actualizado)",
-            "subtitle": "Guía de Usuario — Rol Profesor v1.1"
+            "subtitle": "Guía de Usuario — Rol Profesor v1.1",
+            "version": "1.1.0 (Actualizada - AGY)",
+            "date": "Septiembre, 2026"
         },
         {
             "md": os.path.join(docs_dir, "manual-estudiante-actualizado.md"),
             "pdf": os.path.join(docs_dir, "manual-estudiante-actualizado.pdf"),
             "title": "Manual del Estudiante (Actualizado)",
-            "subtitle": "Guía de Usuario — Rol Estudiante v1.1"
+            "subtitle": "Guía de Usuario — Rol Estudiante v1.1",
+            "version": "1.1.0 (Actualizada - AGY)",
+            "date": "Septiembre, 2026"
         },
         {
             "md": os.path.join(docs_dir, "DOCUMENTACION_PROYECTO_DE_GRADO.md"),
             "pdf": os.path.join(docs_dir, "documentacion-proyecto-de-grado.pdf"),
             "title": "Proyecto de Grado: NexuMathEdu",
-            "subtitle": "Memoria Técnica y Arquitectura de Software"
+            "subtitle": "Memoria Técnica y Arquitectura de Software",
+            "version": "2.0.0 (Proyecto de Grado)",
+            "date": "Septiembre, 2026"
         }
     ]
     
     for doc in documents:
         if os.path.exists(doc["md"]):
             try:
-                parse_and_generate_pdf(doc["md"], doc["pdf"], doc["title"], doc["subtitle"])
+                parse_and_generate_pdf(
+                    doc["md"],
+                    doc["pdf"],
+                    doc["title"],
+                    doc["subtitle"],
+                    version=doc.get("version", "1.0.0 (Estable)"),
+                    date_str=doc.get("date", "Junio, 2026")
+                )
             except Exception as e:
                 print(f"Error procesando {doc['md']}: {e}")
         else:
