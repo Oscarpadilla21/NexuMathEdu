@@ -466,6 +466,30 @@ if __name__ == "__main__":
             "pdf": os.path.join(docs_dir, "arquitectura-y-rutas.pdf"),
             "title": "Arquitectura y Rutas",
             "subtitle": "Documentación Técnica del Sistema"
+        },
+        {
+            "md": os.path.join(docs_dir, "manual-admin-actualizado.md"),
+            "pdf": os.path.join(docs_dir, "manual-admin-actualizado.pdf"),
+            "title": "Manual del Administrador (Actualizado)",
+            "subtitle": "Guía de Usuario — Rol Administrador v1.1"
+        },
+        {
+            "md": os.path.join(docs_dir, "manual-profesor-actualizado.md"),
+            "pdf": os.path.join(docs_dir, "manual-profesor-actualizado.pdf"),
+            "title": "Manual del Profesor (Actualizado)",
+            "subtitle": "Guía de Usuario — Rol Profesor v1.1"
+        },
+        {
+            "md": os.path.join(docs_dir, "manual-estudiante-actualizado.md"),
+            "pdf": os.path.join(docs_dir, "manual-estudiante-actualizado.pdf"),
+            "title": "Manual del Estudiante (Actualizado)",
+            "subtitle": "Guía de Usuario — Rol Estudiante v1.1"
+        },
+        {
+            "md": os.path.join(docs_dir, "DOCUMENTACION_PROYECTO_DE_GRADO.md"),
+            "pdf": os.path.join(docs_dir, "documentacion-proyecto-de-grado.pdf"),
+            "title": "Proyecto de Grado: NexuMathEdu",
+            "subtitle": "Memoria Técnica y Arquitectura de Software"
         }
     ]
     

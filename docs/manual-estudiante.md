@@ -1,88 +1,73 @@
-# Manual de Usuario — Rol Estudiante (NexuMathEdu)
+# Manual de Usuario — Rol Estudiante
 
-## 1. Inicio de sesión y Acceso a la Plataforma
+## 1. Inicio de sesión
 
-1. Ingresa a la dirección web de **NexuMathEdu**.
-2. Introduce tu **correo electrónico de estudiante** y tu **contraseña** (suministrada por tu profesor o administrador).
-3. Haz clic en el botón **"Iniciar sesión"**.
-4. La plataforma verificará tu identidad de forma segura y te llevará inmediatamente a tu **Panel de Estudiante** (`/student`).
+1. Ingresa a la URL de la aplicación.
+2. Introduce tu **correo electrónico** y **contraseña** (proporcionados por tu profesor o administrador).
+3. Haz clic en **Iniciar sesión**.
+4. Serás redirigido automáticamente a tu panel de estudiante.
 
-> **Recomendaciones de Seguridad:**
-> - Tu sesión se cerrará automáticamente si pasas **30 minutos sin interactuar** con la plataforma, protegiendo tu cuenta en equipos compartidos.
-> - La primera vez que ingreses, te sugerimos ir a tu **Perfil** (`/perfil`) y cambiar tu contraseña por una de tu preferencia.
+> Si olvidaste tu contraseña, contacta a tu profesor o a un administrador para restablecerla.
 
 ---
 
-## 2. Panel Principal del Estudiante (`/student`)
+## 2. Panel principal (/student)
 
-El panel principal es tu centro de seguimiento académico. Aquí puedes consultar tus cursos activos y conocer en tiempo real tu rendimiento en cada período.
+Al iniciar sesión verás las siguientes secciones:
 
-### 2.1. Resumen de Progreso
-- **Cursos Matriculados:** Número total de materias en las que te encuentras inscrito.
-- **Matrículas Activas:** Estado de tus inscripciones académicas vigentes.
-- **Promedio General (PF):** Calificación global promedio acumulada a lo largo del año lectivo.
+### 2.1. Resumen de estadísticas
+- **Total de cursos** en los que estás matriculado.
+- **Total de matrículas** activas.
+- **Promedio general (PF)** de todas tus calificaciones.
 
----
+### 2.2. Mis cursos y calificaciones
 
-### 2.2. Mis Cursos y Planilla de Calificaciones
+En la tabla de cursos verás:
 
-En la tabla interactiva encontrarás el desglose de cada asignatura:
+| Curso | Grado | P1 | P2 | P3 | PF |
+|-------|-------|----|----|----|----|
 
-| Asignatura | Grado | Período 1 (P1) | Período 2 (P2) | Período 3 (P3) | Nota Final (PF) | Estado |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| *Nombre del Curso* | 6° - 11° | Nota 1 | Nota 2 | Nota 3 | Promedio | Aprobado / En Refuerzo |
+- **P1**: Nota del primer período.
+- **P2**: Nota del segundo período.
+- **P3**: Nota del tercer período.
+- **PF**: Nota final calculada automáticamente.
 
-- **P1, P2 y P3:** Corresponden a las notas asentadas por tu docente al cierre de cada uno de los tres períodos académicos.
-- **PF (Promedio Final):** Se calcula automáticamente a partir de la media aritmética de los tres períodos:
-  $$\text{PF} = \frac{\text{P1} + \text{P2} + \text{P3}}{3}$$
-- **Indicador Visual de Desempeño:** Las calificaciones se resaltan con códigos de color para que identifiques rápidamente qué asignaturas requieren mayor dedicación y repaso.
-
-> **Nota:** La información es de consulta exclusiva. Si detectas alguna inconsistencia en tus notas, comunícate directamente con tu docente de la materia.
+> La información es de consulta solamente. No puedes modificar tus notas. Si crees que hay un error, contacta a tu profesor.
 
 ---
 
-## 3. Tutor Matemático con Inteligencia Artificial (`/chat`)
+## 3. Chat con IA (/chat)
 
-La plataforma incluye un **Tutor Matemático Inteligente** diseñado para acompañarte en tu aprendizaje autónomo, resolver dudas conceptuales y prepararte para tus evaluaciones.
+- Accede al chat con IA con un perfil preconfigurado de **"Tutor"**.
+- El asistente está entrenado para ayudarte con:
+  - Explicaciones paso a paso de problemas matemáticos.
+  - Ejercicios prácticos para reforzar conceptos.
+  - Resolución de dudas académicas.
+  - Preparación para evaluaciones.
 
-### 3.1. ¿Cómo te ayuda el Tutor IA?
-- **Explicaciones Paso a Paso:** No se limita a darte la respuesta final; desglosa los procedimientos matemáticos en pasos claros y comprensibles.
-- **Ejercicios Prácticos Guiados:** Puedes pedirle ejercicios de práctica con diferente nivel de dificultad para poner a prueba tus conocimientos.
-- **Resolución de Dudas en Lenguaje Natural:** Puedes preguntarle con tus propias palabras o pegar un enunciado matemático.
-- **Apoyo Pedagógico Adaptado:** El modelo está instruido para incentivar tu razonamiento lógico y explicarte el "por qué" de cada propiedad matemática.
+### 3.1. Teclado matemático
 
----
+- Al lado del campo de texto hay un botón con ícono de calculadora 🖩 que abre un **teclado numérico científico**.
+- Ideal para escribir expresiones matemáticas sin tener que buscar los símbolos en el teclado físico.
+- Incluye: números, operadores, funciones trigonométricas (sin, cos, tan), logaritmos, raíz cuadrada, potencias, constantes (π, e) y paréntesis.
 
-### 3.2. Teclado Numérico Científico en Pantalla
+### 3.2. Configuración del chat
 
-Para que no tengas que memorizar códigos ni buscar símbolos extraños en tu teclado físico:
-1. En la parte inferior derecha del campo de chat, pulsa el botón con el ícono de **Calculadora** 🖩.
-2. Se abrirá el teclado científico interactivo en pantalla:
-   - **Operadores básicos:** $+$, $-$, $\times$, $\div$, $=$
-   - **Potencias y raíces:** $x^2$, $\sqrt{\phantom{x}}$
-   - **Trigonometría:** $\sin$, $\cos$, $\tan$
-   - **Logaritmos y constantes:** $\log$, $\ln$, $\pi$, $e$
-   - **Agrupación y control:** Paréntesis $( \ )$, retroceso $\leftarrow$ y limpiar entrada $\text{C}$.
-3. Al pulsar cualquier tecla, el símbolo se inserta en la posición exacta del cursor dentro del mensaje.
+- Puedes ajustar el tono, nivel de detalle, enfoque e idioma del tutor.
+- Al hacer clic en **"Guardar configuración"** se bloquean los ajustes para mantener tu experiencia consistente.
+- Usa **"Restablecer ajustes"** para volver a los valores por defecto.
 
----
-
-### 3.3. Notación Matemática Profesional (KaTeX)
-El chat cuenta con un motor de renderizado basado en **KaTeX**. Las fórmulas complejas, fracciones, exponentes e integrales que genera el tutor se mostrarán con tipografía matemática clara y elegante, idéntica a la de un libro de texto.
+> Escribe tu pregunta en lenguaje natural y el tutor IA te guiará en tu aprendizaje.
 
 ---
 
-### 3.4. Personalización del Asistente
-Puedes personalizar la forma en que el tutor se comunica contigo en el botón de **Ajustes del Chat**:
-- **Tono:** Claro, motivador, formal o conciso.
-- **Nivel de detalle:** Paso a paso (exhaustivo), medio o directo al punto (breve).
-- **Enfoque temático:** Matemáticas escolares, álgebra, geometría, cálculo o estadística.
-- **Guardar configuración:** Fija tus preferencias para todos tus nuevos chats.
+## 4. Perfil (/perfil)
+
+- Visualiza tu información personal (nombre, correo, rol).
+- Puedes **cambiar tu contraseña**.
 
 ---
 
-## 4. Mi Perfil (`/perfil`) y Cierre de Sesión
+## 5. Cierre de sesión
 
-- Revisa tus datos de contacto y grado registrado.
-- **Actualizar Contraseña:** Ingresa tu contraseña actual y define una nueva clave segura.
-- **Cerrar Sesión:** Haz clic en **"Cerrar sesión"** al terminar tu jornada de estudio, especialmente si te encuentras en computadores de la sala de informática o bibliotecas.
+Haz clic en **"Cerrar sesión"** en el encabezado. Después de 30 minutos de inactividad, tu sesión se cerrará automáticamente por seguridad.
