@@ -83,30 +83,71 @@ create or replace function public.current_user_role()
 returns public.user_role
 language sql
 stable
-security definer
+security invoker
 set search_path = ''
 as $$
   select coalesce(
     nullif(auth.jwt() -> 'app_metadata' ->> 'role', '')::public.user_role,
     nullif(auth.jwt() -> 'user_metadata' ->> 'role', '')::public.user_role,
-    (
-      select coalesce(raw_app_meta_data->>'role', raw_user_meta_data->>'role', 'student')::public.user_role
-      from auth.users
-      where id = (select auth.uid())
-      limit 1
-    )
+    'student'::public.user_role
   )
 $$;
+
+grant execute on function public.current_user_role() to anon, authenticated;
 
 create or replace function public.has_any_role(allowed_roles public.user_role[])
 returns boolean
 language sql
 stable
-security definer
+security invoker
 set search_path = ''
 as $$
   select coalesce((select public.current_user_role()) = any (allowed_roles), false)
 $$;
+
+grant execute on function public.has_any_role(public.user_role[]) to anon, authenticated;
+
+create or replace function public.prevent_invalid_profile_role_changes()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if new.role is distinct from old.role then
+    if (select public.current_user_role()) = 'teacher'::public.user_role then
+      raise exception 'Teachers cannot change roles';
+    end if;
+
+    if new.role = 'admin'::public.user_role and (select auth.uid()) <> new.id then
+      raise exception 'Admin role cannot be assigned to another user';
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+
+-- Trigger functions should never be executable by public/anon/authenticated over RPC
+revoke execute on function public.handle_new_user() from public, anon, authenticated;
+revoke execute on function public.prevent_invalid_profile_role_changes() from public, anon, authenticated;
+
+-- Drop obsolete teacher dashboard RPC function (replaced by teacher-dashboard-data Edge function)
+drop function if exists public.get_teacher_dashboard_data(uuid);
+
+-- Security / Extension Hygiene: Move pgcrypto out of public schema if installed there
+do $$
+begin
+  create schema if not exists extensions;
+  if exists (
+    select 1
+    from pg_extension e
+    join pg_namespace n on e.extnamespace = n.oid
+    where e.extname = 'pgcrypto' and n.nspname = 'public'
+  ) then
+    alter extension pgcrypto set schema extensions;
+  end if;
+end$$;
 
 -- ============================================================================
 -- 2. CREATE ALL MISSING FOREIGN KEY INDEXES (Performance Advisor: unindexed_foreign_keys)

@@ -1,7 +1,8 @@
 -- NexuMathEdu - Supabase schema
 -- Paste this into Supabase SQL Editor to create the database from scratch.
 
-create extension if not exists pgcrypto;
+create schema if not exists extensions;
+create extension if not exists pgcrypto with schema extensions;
 
 -- ============================================================================
 -- Types
@@ -87,30 +88,29 @@ create or replace function public.current_user_role()
 returns public.user_role
 language sql
 stable
-security definer
+security invoker
 set search_path = ''
 as $$
   select coalesce(
     nullif(auth.jwt() -> 'app_metadata' ->> 'role', '')::public.user_role,
     nullif(auth.jwt() -> 'user_metadata' ->> 'role', '')::public.user_role,
-    (
-      select coalesce(raw_app_meta_data->>'role', raw_user_meta_data->>'role', 'student')::public.user_role
-      from auth.users
-      where id = (select auth.uid())
-      limit 1
-    )
+    'student'::public.user_role
   )
 $$;
+
+grant execute on function public.current_user_role() to anon, authenticated;
 
 create or replace function public.has_any_role(allowed_roles public.user_role[])
 returns boolean
 language sql
 stable
-security definer
+security invoker
 set search_path = ''
 as $$
   select coalesce((select public.current_user_role()) = any (allowed_roles), false)
 $$;
+
+grant execute on function public.has_any_role(public.user_role[]) to anon, authenticated;
 
 create or replace function public.prevent_invalid_profile_role_changes()
 returns trigger
@@ -132,6 +132,9 @@ begin
   return new;
 end;
 $$;
+
+revoke execute on function public.handle_new_user() from public, anon, authenticated;
+revoke execute on function public.prevent_invalid_profile_role_changes() from public, anon, authenticated;
 
 -- ============================================================================
 -- Core tables
