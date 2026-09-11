@@ -8,7 +8,8 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "pnpm run build && wrangler dev",
-    "deploy": "pnpm run build && wrangler deploy"
+    "deploy": "pnpm run build && wrangler deploy",
+    "keep-alive": "node scripts/keep-alive.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.4",

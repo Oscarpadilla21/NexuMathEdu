@@ -1,0 +1,45 @@
+name: Supabase Keep-Alive Ping
+
+on:
+  # Se ejecuta cada 2 días a las 05:00 UTC (Supabase pausa proyectos gratuitos tras 7 días de inactividad)
+  schedule:
+    - cron: '0 5 */2 * *'
+  # Permite ejecución manual desde la pestaña Actions en GitHub
+  workflow_dispatch:
+
+jobs:
+  keepalive:
+    name: Ping Supabase REST & Auth Endpoints
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase Auth Health
+        run: |
+          SUPABASE_URL="${{ secrets.VITE_SUPABASE_URL || 'https://yowfcesdfdqvuoofgvhu.supabase.co' }}"
+          API_KEY="${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_12EUxSKzUUmn3bcl3cD-kQ_AmGNuWNc' }}"
+          
+          echo "Haciendo ping a endpoint de autenticacion..."
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X GET "$SUPABASE_URL/auth/v1/health" \
+            -H "apikey: $API_KEY")
+          
+          echo "Auth health status: $HTTP_STATUS"
+          if [ "$HTTP_STATUS" -ne 200 ]; then
+            echo "::warning::Auth health devolvio status $HTTP_STATUS"
+          fi
+
+      - name: Ping Supabase PostgreSQL (PostgREST Query)
+        run: |
+          SUPABASE_URL="${{ secrets.VITE_SUPABASE_URL || 'https://yowfcesdfdqvuoofgvhu.supabase.co' }}"
+          API_KEY="${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_12EUxSKzUUmn3bcl3cD-kQ_AmGNuWNc' }}"
+          
+          echo "Haciendo consulta activa a PostgreSQL para reiniciar el contador de inactividad..."
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X GET "$SUPABASE_URL/rest/v1/profiles?select=id&limit=1" \
+            -H "apikey: $API_KEY" \
+            -H "Authorization: Bearer $API_KEY")
+          
+          echo "PostgREST profiles query status: $HTTP_STATUS"
+          if [ "$HTTP_STATUS" -eq 200 ]; then
+            echo "Exito: PostgreSQL respondio correctamente. Contador de inactividad de Supabase reiniciado."
+          else
+            echo "::error::Error: PostgREST devolvio status $HTTP_STATUS"
+            exit 1
+          fi
