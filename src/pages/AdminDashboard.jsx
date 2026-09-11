@@ -180,8 +180,7 @@ export default function AdminDashboard() {
       if (failedResources.length > 0) {
         setLoadError(`No se pudieron cargar todos los datos (${failedResources.join(', ')}). Mostrando información parcial disponible.`)
       }
-    } catch (error) {
-      console.warn('No se pudo cargar la lista completa de usuarios.', error)
+    } catch {
       setLoadError('No se pudo cargar la lista completa de usuarios.')
     } finally {
       if (initial) {
@@ -403,8 +402,7 @@ export default function AdminDashboard() {
         setNewUser(EMPTY_USER)
         await fetchData()
       }
-    } catch (error) {
-      console.error('Error al invocar create-user', error)
+    } catch {
       alert(
         'No se pudo crear el usuario. Intenta de nuevo más tarde o contacta al administrador del sistema.'
       )
@@ -549,8 +547,7 @@ export default function AdminDashboard() {
         setEditingUser(null)
         await fetchData()
       }
-    } catch (error) {
-      console.error('Error al actualizar usuario', error)
+    } catch {
       alert('No se pudo actualizar el usuario')
     }
 
@@ -569,7 +566,6 @@ export default function AdminDashboard() {
       alert(type === 'students' ? 'Alumnos asignados exitosamente' : 'Cursos asignados exitosamente')
       await fetchData()
     } catch (err) {
-      console.error('Assignment exception:', err)
       alert(`Error: ${err?.message || 'Error desconocido'}`)
     } finally {
       setAssignmentLoading(false)

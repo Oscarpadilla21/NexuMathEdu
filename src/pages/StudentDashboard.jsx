@@ -36,23 +36,22 @@ async function loadStudentDashboardData({
     )
 
     if (functionError) {
-      console.error('Function error:', functionError)
       setCourses([])
       setEnrollments([])
+      setError('No se pudo cargar el tablero del estudiante.')
       return
     }
 
     if (data?.error) {
-      console.warn('Function returned error:', data.error)
       setCourses([])
       setEnrollments([])
+      setError(data.error)
       return
     }
 
     setCourses(data?.courses || [])
     setEnrollments(data?.enrollments || [])
   } catch (fetchError) {
-    console.error('Fetch error:', fetchError)
     setCourses([])
     setEnrollments([])
     setError(fetchError?.message || 'No se pudo cargar tus notas.')

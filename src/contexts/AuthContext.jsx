@@ -12,8 +12,8 @@ export const useAuth = () => useContext(AuthContext)
 const recordActivity = () => {
   try {
     window.localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()))
-  } catch (error) {
-    console.warn('Unable to record activity timestamp.', error)
+  } catch {
+    // Silently ignore storage errors in restricted contexts
   }
 }
 
@@ -22,8 +22,7 @@ const readLastActivity = () => {
     const value = window.localStorage.getItem(LAST_ACTIVITY_KEY)
     const parsed = Number(value)
     return Number.isFinite(parsed) ? parsed : null
-  } catch (error) {
-    console.warn('Unable to read activity timestamp.', error)
+  } catch {
     return null
   }
 }
@@ -83,7 +82,7 @@ export const AuthProvider = ({ children }) => {
 
     const promise = (async () => {
       try {
-        const { data, error } = await withTimeout(
+        const { data } = await withTimeout(
           supabase.from('profiles').select('*').eq('id', userRecord.id).maybeSingle(),
           6000,
           'La consulta del perfil tardó demasiado'
@@ -98,11 +97,7 @@ export const AuthProvider = ({ children }) => {
           return profileRef.current
         }
 
-        if (error) {
-          console.warn('Profile query warning:', error.message)
-        }
       } catch {
-        console.warn('Profile lookup timeout/fallback active. Using auth metadata role:', fallbackRole)
         if (profileRef.current?.id === userRecord.id) {
           return profileRef.current
         }
@@ -167,8 +162,8 @@ export const AuthProvider = ({ children }) => {
         } else {
           clearAuthState()
         }
-      } catch (error) {
-        console.warn('Fast auth initialization fallback activated:', error?.message)
+      } catch {
+        // Silently continue to fallback state
       } finally {
         if (isMounted) setLoading(false)
       }
@@ -226,11 +221,11 @@ export const AuthProvider = ({ children }) => {
       if (shouldInvalidateSession()) {
         try {
           window.sessionStorage.setItem('nexumathedu:session-expired', 'true')
-        } catch (e) {
-          console.warn('Could not set session-expired flag in sessionStorage', e)
+        } catch {
+          // Silently ignore storage error
         }
-        void supabase.auth.signOut().catch((error) => {
-          console.error('Auto sign out failed:', error)
+        void supabase.auth.signOut().catch(() => {
+          // Silently ignore sign out failure on inactive session
         })
         setSession(null)
         setUser(null)
@@ -247,40 +242,29 @@ export const AuthProvider = ({ children }) => {
   }, [])
 
   const login = async (email, password) => {
-    try {
-      const { data, error } = await withTimeout(
-        supabase.auth.signInWithPassword({ email, password }),
-        45000,
-        'El inicio de sesión tardó demasiado. Intenta de nuevo.'
-      )
-      if (error) throw error
+    const { data, error } = await withTimeout(
+      supabase.auth.signInWithPassword({ email, password }),
+      45000,
+      'El inicio de sesión tardó demasiado. Intenta de nuevo.'
+    )
+    if (error) throw error
 
-      if (data?.session?.user) {
-        setSession(data.session)
-        const userProfile = await fetchProfile(data.session.user)
-        setUser(data.session.user)
-        recordActivity()
-        console.info(
-          'User logged in:',
-          data.session.user.email,
-          'role:',
-          userProfile?.role || data.session.user.user_metadata?.role
-        )
-      }
-
-      return data
-    } catch (error) {
-      console.error('Login error:', error instanceof Error ? error.message : error)
-      throw error
+    if (data?.session?.user) {
+      setSession(data.session)
+      await fetchProfile(data.session.user)
+      setUser(data.session.user)
+      recordActivity()
     }
+
+    return data
   }
 
   const logout = async () => {
     try {
       await supabase.auth.signOut()
-    } catch (error) {
-      console.error('Error during logout:', error)
-      // Limpiamos localmente incluso si hay error
+    } catch {
+      // Limpiamos localmente incluso si hay error de red
+    } finally {
       setSession(null)
       setUser(null)
       setProfile(null)

@@ -7,7 +7,6 @@ export function withTimeout(
 
   const timeoutPromise = new Promise((_, reject) => {
     timeoutId = window.setTimeout(() => {
-      console.warn(`[withTimeout] ${timeoutMessage} (${timeoutMs}ms)`)
       reject(new Error(timeoutMessage))
     }, timeoutMs)
   })

@@ -62,7 +62,9 @@ export default function ApexChartPanel({ type, options, series, height = 420 }) 
         chartRef.current = new ApexCharts(containerRef.current, chartOptions)
         await chartRef.current.render()
       } catch (error) {
-        console.error('Failed to render ApexCharts', error)
+        if (import.meta.env.DEV) {
+          console.error('Failed to render ApexCharts', error)
+        }
         setChartError(error instanceof Error ? error.message : 'No se pudo renderizar el gráfico')
       }
     }

@@ -16,8 +16,8 @@ const Login = () => {
         window.sessionStorage.removeItem('nexumathedu:session-expired');
         return true;
       }
-    } catch (e) {
-      console.warn('Could not read session-expired flag from sessionStorage', e);
+    } catch {
+      // Silently ignore storage error
     }
     return false;
   });

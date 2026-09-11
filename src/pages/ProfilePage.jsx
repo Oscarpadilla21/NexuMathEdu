@@ -68,7 +68,6 @@ export default function ProfilePage() {
       setNewPassword('')
       setConfirmPassword('')
     } catch (error) {
-      console.error('Password update failed', error)
       setStatusMessage(
         error?.message || 'No se pudo actualizar la contraseña. Intenta de nuevo más tarde.'
       )

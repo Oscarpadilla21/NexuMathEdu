@@ -5,9 +5,12 @@ import tailwindcss from '@tailwindcss/vite'
 import { cloudflare } from "@cloudflare/vite-plugin";
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [react(), tailwindcss(), cloudflare()],
   appType: 'spa',
+  oxc: {
+    drop: mode === 'production' ? ['console', 'debugger'] : [],
+  },
   build: {
     rollupOptions: {
       output: {
@@ -32,4 +35,4 @@ export default defineConfig({
       ignored: ['**/supabase/**', '**/wrangler/**', '**/.git/**'],
     },
   },
-})
+}))
