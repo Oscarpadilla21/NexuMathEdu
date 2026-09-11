@@ -12,7 +12,7 @@ export default function MarkdownContent({ content, tone = 'light' }) {
   const mutedClass = tone === 'dark' ? 'text-white/90' : 'text-slate-600'
 
   return (
-    <div className={baseClassName}>
+    <div className={`${baseClassName} ${textClass}`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeKatex]}
@@ -53,7 +53,7 @@ export default function MarkdownContent({ content, tone = 'light' }) {
               </pre>
             ),
           blockquote: ({ children }) => (
-            <blockquote className={`border-l-4 pl-4 ${tone === 'dark' ? 'border-white/30 text-white/90' : 'border-[#9d31ff]/30 text-slate-600'}`}>{children}</blockquote>
+            <blockquote className={`border-l-4 pl-4 ${tone === 'dark' ? 'border-white/30' : 'border-[#9d31ff]/30'} ${mutedClass}`}>{children}</blockquote>
           ),
           a: ({ children, href }) => (
             <a

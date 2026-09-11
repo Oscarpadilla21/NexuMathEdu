@@ -25,6 +25,8 @@ supabase/.temp/
 .wrangler/
 .dev.vars*
 !.dev.vars.example
+*.deploy-payload.json
+.deploy-payload.json
 
 # Environment & Secret files
 .env

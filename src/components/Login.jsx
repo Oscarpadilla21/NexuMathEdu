@@ -10,21 +10,20 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [sessionExpired, setSessionExpired] = useState(false);
-
-  const navigate = useNavigate();
-  const { login, isAuthenticated, role, loading: authLoading } = useAuth();
-
-  useEffect(() => {
+  const [sessionExpired, setSessionExpired] = useState(() => {
     try {
-      if (window.sessionStorage.getItem('nexumathedu:session-expired') === 'true') {
-        setSessionExpired(true);
+      if (typeof window !== 'undefined' && window.sessionStorage.getItem('nexumathedu:session-expired') === 'true') {
         window.sessionStorage.removeItem('nexumathedu:session-expired');
+        return true;
       }
     } catch (e) {
       console.warn('Could not read session-expired flag from sessionStorage', e);
     }
-  }, []);
+    return false;
+  });
+
+  const navigate = useNavigate();
+  const { login, isAuthenticated, role, loading: authLoading } = useAuth();
 
   useEffect(() => {
     if (isAuthenticated && role) {

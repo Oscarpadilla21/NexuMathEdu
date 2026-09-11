@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import ProtectedLayout from './components/layout/ProtectedLayout'
 import Login from './components/Login'
+import ErrorBoundary from './components/ErrorBoundary'
 import { getRouteForRole } from './utils/roleRoutes'
 
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'))
@@ -58,9 +59,11 @@ function AppRoutes() {
 
 function App() {
   return (
-    <AuthProvider>
-      <AppRoutes />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
+    </ErrorBoundary>
   )
 }
 

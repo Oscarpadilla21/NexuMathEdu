@@ -40,13 +40,6 @@ const CHART_OPTIONS = [
   { value: 'table', label: 'Tabla', icon: Table2 },
 ]
 
-const STUDENT_CHART_OPTIONS = [
-  { value: 'bar', label: 'Barras', icon: BarChart3 },
-  { value: 'area', label: 'Trayectoria', icon: LineChart },
-  { value: 'scatter', label: 'Dispersión', icon: ScatterChart },
-  { value: 'table', label: 'Tabla', icon: Table2 },
-]
-
 const METRIC_OPTIONS = [
   { value: 'final_grade', label: 'Nota final' },
   { value: 'note_1', label: 'P1' },
@@ -74,22 +67,13 @@ export default function CoursePerformanceSection({
   const [activeCourseId, setActiveCourseId] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [analysisMode, setAnalysisMode] = useState('courses')
-  const [courseChartType, setCourseChartType] = useState('bar')
-  const [studentChartType, setStudentChartType] = useState('bar')
 
-  useEffect(() => {
-    if (!activeCourseId && catalog.courses.length > 0) {
-      setActiveCourseId(catalog.courses[0]?.id || null)
-    }
-  }, [activeCourseId, catalog.courses])
-
-  const activeCourse = isModalOpen ? catalog.courses.find((item) => item.id === activeCourseId) || null : null
+  const effectiveCourseId = activeCourseId || catalog.courses[0]?.id || null
+  const activeCourse = isModalOpen ? catalog.courses.find((item) => item.id === effectiveCourseId) || null : null
 
   const openCourseAnalysis = (courseId) => {
     setActiveCourseId(courseId)
     setAnalysisMode('courses')
-    setCourseChartType('bar')
-    setStudentChartType('bar')
     setIsModalOpen(true)
   }
 
@@ -259,7 +243,6 @@ export default function CoursePerformanceSection({
 function CoursePerformanceModal({ open, course, catalog, analysisMode, onModeChange, onClose }) {
   const [selectedCourseIds, setSelectedCourseIds] = useState([])
   const [selectedStudentIds, setSelectedStudentIds] = useState([])
-  const [chartType, setChartType] = useState('bar')
   const [courseChartType, setCourseChartType] = useState('bar')
   const [studentChartType, setStudentChartType] = useState('bar')
   const [selectedGroup, setSelectedGroup] = useState('all')
@@ -282,7 +265,6 @@ function CoursePerformanceModal({ open, course, catalog, analysisMode, onModeCha
       const firstStudentId = course.records?.[0]?.student_id || null
       setSelectedCourseIds([course.id])
       setSelectedStudentIds(firstStudentId ? [firstStudentId] : [])
-      setChartType('bar')
       setCourseChartType('bar')
       setStudentChartType('bar')
       setSelectedGroup('all')
@@ -830,14 +812,12 @@ function CourseComparisonTable({ courses }) {
 }
 
 function StudentPerformanceView({
-  course,
   studentRecords,
   selectedStudentIds,
   setSelectedStudentIds,
   studentSearchQuery,
   setStudentSearchQuery,
   chartType,
-  setChartType,
   selectedGroup,
   setSelectedGroup,
   evaluationMetric,
@@ -893,7 +873,9 @@ function StudentPerformanceView({
   })
 
   // Obtener estudiantes seleccionados
-  const selectedStudents = filteredCards.filter((r) => selectedStudentIds.includes(r.student_id))
+  const selectedStudents = useMemo(() => {
+    return filteredCards.filter((r) => selectedStudentIds.includes(r.student_id))
+  }, [filteredCards, selectedStudentIds])
   
   const toggleStudentSelection = (studentId) => {
     setSelectedStudentIds((current) => {
@@ -1771,43 +1753,6 @@ function buildComparisonChartOptions(chartData, chartType, selectedPeriodKeys) {
   }
 }
 
-function buildStudentChartData(selectedStudent, selectedPeriodKeys, chartType) {
-  if (!selectedStudent) {
-    return { series: [] }
-  }
-
-  const labels = selectedPeriodKeys.map((periodKey) => getAcademicPeriodLabel(periodKey))
-  const values = selectedPeriodKeys.map((periodKey) => getGradeMetricValue(selectedStudent, periodKey))
-
-  if (chartType === 'scatter') {
-    return {
-      series: [
-        {
-          name: selectedStudent.student_name,
-          data: values.map((value, index) => ({
-            x: index + 1,
-            y: Number(value || 0),
-            period: labels[index],
-          })),
-          color: CHART_COLORS[0],
-        },
-      ],
-      categories: labels,
-    }
-  }
-
-  return {
-    series: [
-      {
-        name: selectedStudent.student_name,
-        data: values,
-        color: CHART_COLORS[0],
-      },
-    ],
-    categories: labels,
-  }
-}
-
 function buildStudentChartOptions(chartData, chartType) {
   if (chartType === 'scatter') {
     return {
@@ -2066,28 +2011,6 @@ Por favor diseña una sesión de aprendizaje adaptativa con 3 ejercicios prácti
         <Bot className="h-4 w-4" />
         Generar Plan con Tutor IA
       </button>
-    </div>
-  )
-}
-
-function StudentNotesCard({ record }) {
-  if (!record) return null
-
-  const attendance = getAttendanceValue(record)
-
-  return (
-    <div className="rounded-[2rem] border border-[#ece8f6] bg-white p-5 shadow-sm">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9d31ff]">Detalle académico</p>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <MetricPill label="Asistencia" value={formatScore(attendance)} tone="emerald" />
-        <MetricPill label="Curso" value={record.course_title} tone="slate" />
-      </div>
-      <div className="mt-4 text-sm text-slate-500">
-        <div className="flex items-center justify-between rounded-2xl bg-[#f8faff] px-3 py-2">
-          <span>Nota histórica</span>
-          <span className="font-semibold text-slate-900">{formatScore(record.final_grade)}</span>
-        </div>
-      </div>
     </div>
   )
 }

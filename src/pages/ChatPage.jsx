@@ -113,7 +113,6 @@ export default function ChatPage() {
     setSettings((cur) => ({ ...cur, ...partial }))
   }
 
-  const [settingsSaved, setSettingsSaved] = useState(false)
   const [saveMessage, setSaveMessage] = useState('')
   const handleSaveSettings = async () => {
     if (!session?.access_token || !profile?.id) return
@@ -124,7 +123,6 @@ export default function ChatPage() {
         .update({ chat_provider: settings.provider })
         .eq('id', profile.id)
       if (error) throw error
-      setSettingsSaved(true)
       setSaveMessage('Configuración guardada')
       setTimeout(() => setSaveMessage(''), 2500)
     } catch {
@@ -157,7 +155,7 @@ export default function ChatPage() {
   const handleNewThread = () => {
     setActiveThreadId(null)
     setMessages([])
-    setSettingsSaved(false)
+    setSaveMessage('')
     setError('')
     if (!isDesktop()) setLeftOpen(false)
   }
@@ -384,7 +382,7 @@ export default function ChatPage() {
           onChange={handleUpdateSettings}
           onReset={() => {
             setSettings(defaultChatSettings)
-            setSettingsSaved(false)
+            setSaveMessage('')
           }}
           onSave={handleSaveSettings}
           saveMessage={saveMessage}
@@ -407,7 +405,7 @@ export default function ChatPage() {
           onChange={handleUpdateSettings}
           onReset={() => {
             setSettings(defaultChatSettings)
-            setSettingsSaved(false)
+            setSaveMessage('')
           }}
           onSave={handleSaveSettings}
           saveMessage={saveMessage}

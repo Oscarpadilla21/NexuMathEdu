@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { adminService } from '../services'
 import UserModal from '../components/dashboard/UserModal'
 import CourseModal from '../components/dashboard/CourseModal'
 import TeacherAssignmentModal from '../components/dashboard/TeacherAssignmentModal'
@@ -28,7 +29,7 @@ const EMPTY_COURSE = {
 }
 
 export default function AdminDashboard() {
-  const { profile, logout } = useAuth()
+  const { profile } = useAuth()
   const navigate = useNavigate()
   const [users, setUsers] = useState([])
   const [courses, setCourses] = useState([])
@@ -79,20 +80,6 @@ export default function AdminDashboard() {
 
   const teacherUsers = useMemo(() => users.filter((user) => user.role === 'teacher'), [users])
   const studentUsers = useMemo(() => users.filter((user) => user.role === 'student'), [users])
-  const filteredStudentUsers = useMemo(() => {
-    const query = studentSearchQuery.trim().toLowerCase()
-
-    if (!query) {
-      return studentUsers
-    }
-
-    return studentUsers.filter((student) => {
-      const fullName = (student.full_name || '').toLowerCase()
-      const email = (student.email || '').toLowerCase()
-
-      return fullName.includes(query) || email.includes(query)
-    })
-  }, [studentSearchQuery, studentUsers])
   const courseStudentIdsByCourseId = useMemo(() => {
     const map = new Map()
 
@@ -222,10 +209,6 @@ export default function AdminDashboard() {
       window.clearTimeout(fallbackTimer)
     }
   }, [])
-
-  const handleLogout = async () => {
-    await logout()
-  }
 
   const openCreateCourse = () => {
     setEditingCourseId(null)
@@ -577,24 +560,14 @@ export default function AdminDashboard() {
   const handleAssignResources = async ({ teacher_id, resource_ids, type }) => {
     setAssignmentLoading(true)
     try {
-      const functionName = type === 'students' ? 'admin-assign-students-to-teacher' : 'admin-assign-courses-to-teacher'
-      const bodyKey = type === 'students' ? 'student_ids' : 'course_ids'
-
-      const { data, error } = await supabase.functions.invoke(functionName, {
-        body: {
-          teacher_id,
-          [bodyKey]: resource_ids,
-        },
-      })
-
-      if (error) {
-        console.error('Assignment error:', { error, data })
-        const errorMsg = data?.error || error.message || `Error al asignar ${type === 'students' ? 'alumnos' : 'cursos'}`
-        alert(`Error: ${errorMsg}`)
+      if (type === 'students') {
+        await adminService.assignStudentsToTeacher(teacher_id, resource_ids)
       } else {
-        alert(type === 'students' ? 'Alumnos asignados exitosamente' : 'Cursos asignados exitosamente')
-        await fetchData()
+        await adminService.assignCoursesToTeacher(teacher_id, resource_ids)
       }
+
+      alert(type === 'students' ? 'Alumnos asignados exitosamente' : 'Cursos asignados exitosamente')
+      await fetchData()
     } catch (err) {
       console.error('Assignment exception:', err)
       alert(`Error: ${err?.message || 'Error desconocido'}`)
@@ -672,6 +645,18 @@ export default function AdminDashboard() {
             </div>
             {/* Saltos directos a las pantallas que usan administradores con frecuencia. */}
             <div className="flex flex-wrap gap-3">
+              <button
+                onClick={openAssignStudentsModal}
+                className="rounded-lg border border-purple-200 bg-purple-50 px-4 py-2 text-sm font-semibold text-purple-700 hover:bg-purple-100"
+              >
+                Asignar alumnos a profesor
+              </button>
+              <button
+                onClick={openAssignCoursesModal}
+                className="rounded-lg border border-purple-200 bg-purple-50 px-4 py-2 text-sm font-semibold text-purple-700 hover:bg-purple-100"
+              >
+                Asignar cursos a profesor
+              </button>
               <button
                 onClick={() => navigate('/perfil')}
                 className="rounded-lg border border-purple-200 bg-purple-50 px-4 py-2 text-sm font-semibold text-purple-700 hover:bg-purple-100"
@@ -992,6 +977,17 @@ export default function AdminDashboard() {
             </div>
           </div>
         )}
+
+        <TeacherAssignmentModal
+          open={showAssignmentModal}
+          assignmentType={assignmentType}
+          teachers={teacherUsers}
+          students={studentUsers}
+          courses={courses}
+          onSubmit={handleAssignResources}
+          onClose={() => setShowAssignmentModal(false)}
+          submitting={assignmentLoading}
+        />
       </main>
   )
 }

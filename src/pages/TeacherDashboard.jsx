@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Plus, Search, Users, BookOpen, GraduationCap, Pencil, Trash2, RefreshCw } from 'lucide-react'
+import { Search, Pencil, Trash2 } from 'lucide-react'
 import UserModal from '../components/dashboard/UserModal'
 import CourseModal from '../components/dashboard/CourseModal'
 import EnrollmentModal from '../components/dashboard/EnrollmentModal'
@@ -26,29 +25,6 @@ const EMPTY_COURSE = {
   teacher_id: '',
   is_active: true,
   student_ids: [],
-}
-
-const EMPTY_ENROLLMENT = {
-  course_id: '',
-  student_id: '',
-  student_name: '',
-  student_email: '',
-  note_1: '0',
-  note_2: '0',
-  note_3: '0',
-  final_grade: 0,
-}
-
-function countStats(courses, enrollments) {
-  return {
-    courses: courses.length,
-    students: new Set(enrollments.map((enrollment) => enrollment.student_id)).size,
-    enrollments: enrollments.length,
-    average_pf:
-      enrollments.length > 0
-        ? enrollments.reduce((sum, enrollment) => sum + Number(enrollment.final_grade || 0), 0) / enrollments.length
-        : 0,
-  }
 }
 
 async function loadTeacherDashboardData({
@@ -96,8 +72,7 @@ async function loadTeacherDashboardData({
 }
 
 export default function TeacherDashboard() {
-  const { profile, session, logout } = useAuth()
-  const navigate = useNavigate()
+  const { profile, session } = useAuth()
   const [students, setStudents] = useState([])
   const [courses, setCourses] = useState([])
   const [enrollments, setEnrollments] = useState([])
@@ -118,12 +93,6 @@ export default function TeacherDashboard() {
   const [courseForm, setCourseForm] = useState(EMPTY_COURSE)
   const [editingCourseId, setEditingCourseId] = useState(null)
   const [editingEnrollment, setEditingEnrollment] = useState(null)
-
-  const navItems = [
-    { label: 'Inicio', to: '/teacher' },
-    { label: 'Mi perfil', to: '/perfil' },
-    { label: 'Chat', to: '/chat' },
-  ]
 
   const filteredCourses = useMemo(() => {
     const query = courseSearch.trim().toLowerCase()
@@ -158,8 +127,6 @@ export default function TeacherDashboard() {
       return student.includes(query) || course.includes(query)
     })
   }, [enrollmentSearch, enrollments])
-
-  const stats = useMemo(() => countStats(courses, enrollments), [courses, enrollments])
 
   const courseStudentMap = useMemo(() => {
     const map = new Map()
@@ -201,10 +168,6 @@ export default function TeacherDashboard() {
     }
   }, [session?.access_token])
 
-  const handleLogout = async () => {
-    await logout()
-  }
-
   const refreshData = async () => {
     setRefreshing(true)
     await loadTeacherDashboardData({
@@ -222,13 +185,6 @@ export default function TeacherDashboard() {
   const openCreateStudent = () => {
     setNewStudent(EMPTY_STUDENT)
     setShowStudentModal(true)
-  }
-
-  const openCreateCourse = () => {
-    setEditingCourseId(null)
-    setCourseForm({ ...EMPTY_COURSE, teacher_id: profile?.id || '' })
-    setCourseStudentSearch('')
-    setShowCourseModal(true)
   }
 
   const openEditCourse = (course) => {
@@ -506,10 +462,6 @@ export default function TeacherDashboard() {
     }
   }
 
-  const handleRefresh = async () => {
-    await refreshData()
-  }
-
   if (initialLoading) {
     return (
       <main className="w-full flex-1 space-y-8">
@@ -540,8 +492,23 @@ export default function TeacherDashboard() {
   }
 
   return (
-    <main className="flex w-full flex-1 flex-col gap-6">
-        <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+    <main className="relative flex w-full flex-1 flex-col gap-6">
+      {refreshing && (
+        <div className="fixed inset-x-0 top-0 z-50 flex justify-center px-4 pt-4">
+          <div className="inline-flex items-center gap-3 rounded-full border border-[#ece8f6] bg-white/95 px-4 py-2 text-sm font-medium text-slate-700 shadow-lg backdrop-blur">
+            <span className="h-3 w-3 animate-pulse rounded-full bg-[#9d31ff]" />
+            Actualizando panel docente...
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          {error}
+        </div>
+      )}
+
+      <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
           <div className="overflow-hidden rounded-[2rem] border border-[#ece8f6] bg-white shadow-2xl">
             <div className="flex flex-col gap-3 border-b border-[#ece8f6] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div>

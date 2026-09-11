@@ -9,6 +9,31 @@ const LAST_ACTIVITY_KEY = 'nexumathedu:last-activity'
 
 export const useAuth = () => useContext(AuthContext)
 
+const recordActivity = () => {
+  try {
+    window.localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()))
+  } catch (error) {
+    console.warn('Unable to record activity timestamp.', error)
+  }
+}
+
+const readLastActivity = () => {
+  try {
+    const value = window.localStorage.getItem(LAST_ACTIVITY_KEY)
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : null
+  } catch (error) {
+    console.warn('Unable to read activity timestamp.', error)
+    return null
+  }
+}
+
+const shouldInvalidateSession = () => {
+  const lastActivity = readLastActivity()
+  if (lastActivity === null) return false
+  return Date.now() - lastActivity > IDLE_TIMEOUT_MS
+}
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
@@ -17,31 +42,6 @@ export const AuthProvider = ({ children }) => {
   const isHandlingAuthRef = useRef(false)
   const sessionRef = useRef(null)
   const profileRef = useRef(null)
-
-  const recordActivity = () => {
-    try {
-      window.localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()))
-    } catch (error) {
-      console.warn('Unable to record activity timestamp.', error)
-    }
-  }
-
-  const readLastActivity = () => {
-    try {
-      const value = window.localStorage.getItem(LAST_ACTIVITY_KEY)
-      const parsed = Number(value)
-      return Number.isFinite(parsed) ? parsed : null
-    } catch (error) {
-      console.warn('Unable to read activity timestamp.', error)
-      return null
-    }
-  }
-
-  const shouldInvalidateSession = () => {
-    const lastActivity = readLastActivity()
-    if (lastActivity === null) return false
-    return Date.now() - lastActivity > IDLE_TIMEOUT_MS
-  }
 
   useEffect(() => {
     sessionRef.current = session
@@ -89,8 +89,7 @@ export const AuthProvider = ({ children }) => {
           'La consulta del perfil tardó demasiado'
         )
 
-        if (!error && data) {
-          console.debug('Profile loaded from database:', { id: data.id, role: data.role })
+        if (data) {
           setProfile(data)
           return data
         }
@@ -102,7 +101,7 @@ export const AuthProvider = ({ children }) => {
         if (error) {
           console.warn('Profile query warning:', error.message)
         }
-      } catch (error) {
+      } catch {
         console.warn('Profile lookup timeout/fallback active. Using auth metadata role:', fallbackRole)
         if (profileRef.current?.id === userRecord.id) {
           return profileRef.current

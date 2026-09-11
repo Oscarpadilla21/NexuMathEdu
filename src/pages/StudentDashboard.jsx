@@ -62,7 +62,7 @@ async function loadStudentDashboardData({
 }
 
 export default function StudentDashboard() {
-  const { profile, session, logout, isAuthenticated } = useAuth()
+  const { session, isAuthenticated } = useAuth()
   const navigate = useNavigate()
   const [courses, setCourses] = useState([])
   const [enrollments, setEnrollments] = useState([])
@@ -76,13 +76,6 @@ export default function StudentDashboard() {
       navigate('/login', { replace: true })
     }
   }, [isAuthenticated, navigate])
-
-
-  const navItems = [
-    { label: 'Home', to: '/student' },
-    { label: 'Mi perfil', to: '/perfil' },
-    { label: 'Chat', to: '/chat' },
-  ]
 
   useEffect(() => {
     const fallbackTimer = window.setTimeout(() => {
@@ -105,10 +98,6 @@ export default function StudentDashboard() {
       window.clearTimeout(fallbackTimer)
     }
   }, [session?.access_token])
-
-  const handleLogout = async () => {
-    await logout()
-  }
 
   const refreshData = async () => {
     setRefreshing(true)

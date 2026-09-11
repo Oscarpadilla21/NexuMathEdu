@@ -111,6 +111,9 @@ Deno.serve(async (req) => {
       email: authUser.email || profile?.email || '',
       full_name: profile?.full_name || authUser.user_metadata?.full_name || authUser.email || '',
       role: profile?.role || authUser.user_metadata?.role || authUser.app_metadata?.role || 'student',
+      grade_level: profile?.grade_level || authUser.user_metadata?.grade_level || null,
+      assigned_grade_levels:
+        profile?.assigned_grade_levels || authUser.user_metadata?.assigned_grade_levels || [],
       created_at: profile?.created_at || authUser.created_at,
       auth_created_at: authUser.created_at,
       has_profile: !!profile,

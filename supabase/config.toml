@@ -5,3 +5,31 @@ verify_jwt = false
 [functions.list-users]
 entrypoint = "./functions/list-users/index.ts"
 verify_jwt = false
+
+[functions.teacher-dashboard-data]
+entrypoint = "./functions/teacher-dashboard-data/index.ts"
+
+[functions.student-dashboard-data]
+entrypoint = "./functions/student-dashboard-data/index.ts"
+verify_jwt = false
+
+[functions.chat]
+entrypoint = "./functions/chat/index.ts"
+verify_jwt = true
+
+[functions.delete-user]
+entrypoint = "./functions/delete-user/index.ts"
+
+[functions.delete-course]
+entrypoint = "./functions/delete-course/index.ts"
+
+[functions.admin-assign-students-to-teacher]
+entrypoint = "./functions/admin-assign-students-to-teacher/index.ts"
+
+[functions.admin-assign-courses-to-teacher]
+entrypoint = "./functions/admin-assign-courses-to-teacher/index.ts"
+
+[functions.update-user]
+entrypoint = "./functions/update-user/index.ts"
+verify_jwt = false
+
